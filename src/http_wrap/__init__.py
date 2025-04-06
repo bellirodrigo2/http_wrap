@@ -1,5 +1,3 @@
-from .adapters.async_aiohttp import AioHttpAdapter
-from .adapters.sync_requests import RequestsAdapter
 from .request import (
     AsyncHTTPRequest,
     HTTPRequestConfig,
@@ -13,7 +11,5 @@ __all__ = [
     "HTTPRequestOptions",
     "SyncHTTPRequest",
     "AsyncHTTPRequest",
-    "ResponseInterface",
-    "RequestsAdapter",
-    "AioHttpAdapter",
+    "ResponseInterface"
 ]

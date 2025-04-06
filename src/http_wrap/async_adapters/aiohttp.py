@@ -1,6 +1,8 @@
 import asyncio
 from collections.abc import AsyncGenerator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import timedelta
+from typing import Any
 
 import aiohttp
 
@@ -12,35 +14,60 @@ from src.http_wrap.request import (
 from src.http_wrap.response import ResponseInterface
 
 
-@dataclass
-class AiohttpResponse(ResponseInterface):
-    _code: int
-    _text: str
-    _content: bytes
-    _url: str
 
-    @property
-    def status_code(self) -> int:
-        return self._code
+@dataclass(frozen=True)
+class AiohttpResponse:
+    status_code: int
+    text: str
+    content: bytes
+    url: str
+    headers: dict[str, str] = field(default_factory=dict)
+    cookies: dict[str, str] = field(default_factory=dict)
+    encoding: str = 'utf-8'
+    elapsed: timedelta = field(default_factory=timedelta)
+    history: list['ResponseInterface'] = field(default_factory=list)
+    reason: str = ''
 
-    @property
-    def text(self) -> str:
-        return self._text
+    def json(self) -> dict[str, Any]:
+        import json
+        try:
+            return json.loads(self.text)
+        except json.JSONDecodeError:
+            return {}
 
-    @property
-    def content(self) -> bytes:
-        return self._content
-
-    @property
-    def url(self) -> str:
-        return self._url
-
-
-async def make_reponse(resp: aiohttp.ClientResponse) -> ResponseInterface:
+async def make_response(resp: aiohttp.ClientResponse) -> ResponseInterface:
     text = await resp.text()
     content = await resp.read()
+
+    elapsed = getattr(resp, 'elapsed', timedelta())
+    
+    history = [
+        AiohttpResponse(
+            status_code=r.status,
+            text=await r.text(),  # Obtendo o texto assíncrono
+            content=await r.read(),  # Obtendo o conteúdo assíncrono
+            url=str(r.url),
+            headers=dict(r.headers),
+            cookies=dict(r.cookies),
+            encoding=r.get_encoding(),
+            elapsed=getattr(r, 'elapsed', timedelta()),
+            history=[],  # Não há histórico para uma resposta anterior
+            reason=r.reason
+        )
+        for r in resp.history
+    ] if resp.history else []
+
     return AiohttpResponse(
-        _code=resp.status, _text=text, _content=content, _url=str(resp.url)
+        status_code=resp.status,
+        text=text,
+        content=content,
+        url=str(resp.url),
+        headers=dict(resp.headers),
+        cookies=dict(resp.cookies),
+        encoding=resp.get_encoding(),
+        elapsed=elapsed,
+        history=history,
+        reason=resp.reason
     )
 
 
@@ -85,7 +112,7 @@ class AioHttpAdapter(AsyncHTTPRequest):
             # verify=opts.verify_ssl if opts.verify_ssl is not None else True,
             cookies=dict(opts.cookies) if opts.cookies else None,
         ) as resp:
-            return await make_reponse(resp)
+            return await make_response(resp)
 
     async def requests(
         self, configs: list[HTTPRequestConfig], max: int

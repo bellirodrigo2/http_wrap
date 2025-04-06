@@ -3,8 +3,8 @@ from urllib.parse import urlencode
 import pytest
 import responses
 
-from src.http_wrap.adapters.sync_requests import RequestsAdapter
-from src.http_wrap.request import HTTPRequestConfig, HTTPRequestOptions
+from http_wrap.sync_adapters import RequestsAdapter
+from src.http_wrap import HTTPRequestConfig, HTTPRequestOptions
 
 
 # Fixture para o client

@@ -1,6 +1,6 @@
 import pytest
 
-from src.http_wrap.request import HTTPRequestOptions
+from src.http_wrap import HTTPRequestOptions
 
 
 def test_valid_options_creation():
