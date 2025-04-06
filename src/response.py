@@ -1,0 +1,13 @@
+from typing import Protocol, runtime_checkable
+
+
+@runtime_checkable
+class ResponseInterface(Protocol):
+    @property
+    def status_code(self) -> int: ...
+    @property
+    def text(self) -> str: ...
+    @property
+    def content(self) -> bytes: ...
+    @property
+    def url(self) -> str: ...
