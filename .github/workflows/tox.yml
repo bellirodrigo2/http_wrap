@@ -14,7 +14,7 @@ jobs:
     
     strategy:
       matrix:
-        python-version: [3.9, 3.10, 3.11, 3.12]  # Definindo as versões do Python que você quer testar
+        python-version: [3.9, 3.10, 3.11, 3.12]  # Usar as versões corretas de Python para o GitHub Actions
 
     steps:
       - name: Checkout code
