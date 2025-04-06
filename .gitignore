@@ -1,6 +1,6 @@
 todo
 
-cmd
+*.cmd
 
 #config file
 /src/config.yml
