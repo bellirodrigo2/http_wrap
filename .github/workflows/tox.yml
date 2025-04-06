@@ -1,4 +1,4 @@
-name: Tox Testing
+name: Python Tox Tests
 
 on:
   push:
@@ -11,25 +11,41 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-
+    
     strategy:
       matrix:
-        python-version: [3.9, 3.10, 3.11, 3.12]
+        python-version: [3.9, 3.10, 3.11, 3.12]  # Definindo as versões do Python que você quer testar
 
     steps:
-      - name: Check out code
+      - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Python with pyenv
+      # Instalação de dependências para o pyenv
+      - name: Install pyenv dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libbz2-dev libreadline-dev libssl-dev zlib1g-dev
+
+      # Configuração do pyenv
+      - name: Set up Python using pyenv
         uses: shalzz/setup-pyenv@v2
         with:
           python-version: ${{ matrix.python-version }}
 
+      # Instalar o Python usando pyenv
+      - name: Install Python
+        run: |
+          pyenv install ${{ matrix.python-version }}
+          pyenv global ${{ matrix.python-version }}
+
+      # Instalar dependências do projeto e executar os testes
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install tox
+          pip install poetry
+          poetry install
 
+      # Rodar os testes com o Tox
       - name: Run tests with Tox
         run: |
-          tox
+          poetry run tox --env=py${{ matrix.python-version }}
