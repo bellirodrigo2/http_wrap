@@ -1,0 +1,36 @@
+name: Run tox tests
+
+on:
+  push:
+    branches:
+      - main  # Ou a branch que você está usando
+  pull_request:
+    branches:
+      - main  # Ou a branch que você está usando
+
+jobs:
+  test:
+    runs-on: ubuntu-latest  # Define o sistema operacional que você quer usar
+
+    strategy:
+      matrix:
+        python-version: [3.9, 3.10, 3.11]  # Versões do Python que você quer testar
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2  # Faz o checkout do seu código
+
+      - name: Set up Python
+        uses: actions/setup-python@v2  # Configura a versão do Python
+        with:
+          python-version: ${{ matrix.python-version }}  # Usando as versões do Python configuradas na matrix
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry install
+
+      - name: Run tox
+        run: |
+          poetry run tox  # Roda o tox no ambiente configurado
