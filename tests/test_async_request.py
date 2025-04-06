@@ -2,9 +2,9 @@ import aiohttp
 import pytest
 from aioresponses import aioresponses
 
-from src.adapters.async_aiohttp import AioHttpAdapter
-from src.request import HTTPRequestConfig, HTTPRequestOptions
-from src.response import ResponseInterface
+from src.http_wrap.adapters.async_aiohttp import AioHttpAdapter
+from src.http_wrap.request import HTTPRequestConfig, HTTPRequestOptions
+from src.http_wrap.response import ResponseInterface
 
 
 @pytest.fixture

@@ -4,8 +4,12 @@ from dataclasses import dataclass
 
 import aiohttp
 
-from src.request import AsyncHTTPRequest, HTTPRequestConfig, HTTPRequestOptions
-from src.response import ResponseInterface
+from src.http_wrap.request import (
+    AsyncHTTPRequest,
+    HTTPRequestConfig,
+    HTTPRequestOptions,
+)
+from src.http_wrap.response import ResponseInterface
 
 
 @dataclass

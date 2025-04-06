@@ -1,6 +1,6 @@
 import pytest
 
-from src.request import HTTPRequestConfig, HTTPRequestOptions
+from src.http_wrap.request import HTTPRequestConfig, HTTPRequestOptions
 
 
 def test_valid_get_with_params():

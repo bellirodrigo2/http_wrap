@@ -2,7 +2,7 @@ from collections.abc import AsyncGenerator, Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Any, Literal, Protocol, cast
 
-from src.response import ResponseInterface
+from src.http_wrap.response import ResponseInterface
 
 httpmethod = Literal["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"]
 

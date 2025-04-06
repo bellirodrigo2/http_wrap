@@ -3,8 +3,8 @@ from typing import Iterable
 
 import requests
 
-from src.request import HTTPRequestConfig, HTTPRequestOptions, SyncHTTPRequest
-from src.response import ResponseInterface
+from src.http_wrap.request import HTTPRequestConfig, HTTPRequestOptions, SyncHTTPRequest
+from src.http_wrap.response import ResponseInterface
 
 
 @dataclass
