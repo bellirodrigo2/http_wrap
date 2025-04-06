@@ -1,6 +1,6 @@
 from collections.abc import AsyncGenerator, Iterable, Mapping
 from dataclasses import dataclass, field
-from typing import Any, Literal, Protocol, cast
+from typing import Any, Literal, Optional, Protocol, Union, cast
 
 from src.http_wrap.response import ResponseInterface
 
@@ -9,13 +9,13 @@ httpmethod = Literal["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"]
 
 @dataclass
 class HTTPRequestOptions:
-    headers: Mapping[str, str] | None = None
-    params: Mapping[str, str] | None = None
-    body: dict[str, Any] | None = None
-    timeout: float | None = None
-    allow_redirects: bool | None = None
-    verify_ssl: bool | None = None
-    cookies: Mapping[str, str] | None = None
+    headers: Optional[Mapping[str, str]] = None
+    params: Optional[Mapping[str, str]]= None
+    body: Optional[dict[str, Any]]= None
+    timeout: Optional[float]= None
+    allow_redirects: Optional[bool]= None
+    verify_ssl: Optional[bool]= None
+    cookies: Optional[Mapping[str, str]]= None
 
     def __post_init__(self) -> None:
         if self.body is not None and not isinstance(self.body, dict):  # type: ignore # test espera dict
@@ -102,4 +102,4 @@ class AsyncHTTPRequest(Protocol):
     ) -> AsyncGenerator[list[ResponseInterface], None]: ...
 
 
-HTTPRequest = SyncHTTPRequest | AsyncHTTPRequest
+HTTPRequest = Union[SyncHTTPRequest, AsyncHTTPRequest]

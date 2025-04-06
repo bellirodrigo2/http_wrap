@@ -2,7 +2,7 @@ import asyncio
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field
 from datetime import timedelta
-from typing import Any
+from typing import Any, Optional
 
 import aiohttp
 
@@ -73,7 +73,7 @@ async def make_response(resp: aiohttp.ClientResponse) -> ResponseInterface:
 
 @dataclass
 class AioHttpAdapter(AsyncHTTPRequest):
-    session: aiohttp.ClientSession | None = None
+    session: Optional[aiohttp.ClientSession] = None
 
     async def init_session(self, verify_ssl: bool = True) -> None:
         if not self.session or self.session.closed:
