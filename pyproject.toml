@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "http-wrap"
-version = "0.1.0"
+version = "1.0.0"
 description = ""
 authors = ["rodbell <bellirodrigo2@gmail.com>"]
 license = "MIT"
@@ -29,3 +29,7 @@ types-requests = "^2.32.0.20250328"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[[tool.poetry.packages]]
+include = "http_wrap"
+from = "src"
