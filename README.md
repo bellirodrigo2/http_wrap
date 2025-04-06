@@ -35,10 +35,10 @@ poetry add http-wrap
 ### Synchronous
 
 ```python
-from http_wrap.sync_request import SyncRequest
+from http_wrap.sync_adapters import RequestsAdapter
 from http_wrap.request import HTTPRequestConfig, HTTPRequestOptions
 
-client = SyncRequest()
+client = RequestsAdapter()
 config = HTTPRequestConfig(
     method="GET",
     url="https://httpbin.org/get",
@@ -53,7 +53,7 @@ print(response.status_code, response.text)
 
 ```python
 import asyncio
-from http_wrap.adapters.async_aiohttp import AioHttpAdapter
+from http_wrap.async_adapters import AioHttpAdapter
 from http_wrap.request import HTTPRequestConfig, HTTPRequestOptions
 
 async def main():

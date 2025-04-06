@@ -14,8 +14,7 @@ jobs:
     
     strategy:
       matrix:
-        python-version: [3.9, 3.10, 3.11, 3.12]  # Usar as versões corretas de Python para o GitHub Actions
-
+        python-version: ['3.9', '3.10', '3.11', '3.12'] 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
