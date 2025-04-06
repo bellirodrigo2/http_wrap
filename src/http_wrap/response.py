@@ -1,6 +1,7 @@
 from datetime import timedelta
 from typing import Any, Protocol, runtime_checkable
 
+
 @runtime_checkable
 class ResponseInterface(Protocol):
     @property
@@ -21,6 +22,6 @@ class ResponseInterface(Protocol):
     @property
     def elapsed(self) -> timedelta: ...
     @property
-    def history(self) -> list['ResponseInterface']: ...
+    def history(self) -> list["ResponseInterface"]: ...
     @property
     def reason(self) -> str: ...

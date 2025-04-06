@@ -10,12 +10,12 @@ httpmethod = Literal["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"]
 @dataclass
 class HTTPRequestOptions:
     headers: Optional[Mapping[str, str]] = None
-    params: Optional[Mapping[str, str]]= None
-    body: Optional[dict[str, Any]]= None
-    timeout: Optional[float]= None
-    allow_redirects: Optional[bool]= None
-    verify_ssl: Optional[bool]= None
-    cookies: Optional[Mapping[str, str]]= None
+    params: Optional[Mapping[str, str]] = None
+    body: Optional[dict[str, Any]] = None
+    timeout: Optional[float] = None
+    allow_redirects: Optional[bool] = None
+    verify_ssl: Optional[bool] = None
+    cookies: Optional[Mapping[str, str]] = None
 
     def __post_init__(self) -> None:
         if self.body is not None and not isinstance(self.body, dict):  # type: ignore # test espera dict

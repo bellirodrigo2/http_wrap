@@ -11,5 +11,5 @@ __all__ = [
     "HTTPRequestOptions",
     "SyncHTTPRequest",
     "AsyncHTTPRequest",
-    "ResponseInterface"
+    "ResponseInterface",
 ]

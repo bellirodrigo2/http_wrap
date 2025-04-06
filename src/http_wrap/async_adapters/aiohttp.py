@@ -14,7 +14,6 @@ from src.http_wrap.request import (
 from src.http_wrap.response import ResponseInterface
 
 
-
 @dataclass(frozen=True)
 class AiohttpResponse:
     status_code: int
@@ -23,39 +22,45 @@ class AiohttpResponse:
     url: str
     headers: dict[str, str] = field(default_factory=dict)
     cookies: dict[str, str] = field(default_factory=dict)
-    encoding: str = 'utf-8'
+    encoding: str = "utf-8"
     elapsed: timedelta = field(default_factory=timedelta)
-    history: list['ResponseInterface'] = field(default_factory=list)
-    reason: str = ''
+    history: list["ResponseInterface"] = field(default_factory=list)
+    reason: str = ""
 
     def json(self) -> dict[str, Any]:
         import json
+
         try:
             return json.loads(self.text)
         except json.JSONDecodeError:
             return {}
 
+
 async def make_response(resp: aiohttp.ClientResponse) -> ResponseInterface:
     text = await resp.text()
     content = await resp.read()
 
-    elapsed = getattr(resp, 'elapsed', timedelta())
-    
-    history = [
-        AiohttpResponse(
-            status_code=r.status,
-            text=await r.text(),  # Obtendo o texto assíncrono
-            content=await r.read(),  # Obtendo o conteúdo assíncrono
-            url=str(r.url),
-            headers=dict(r.headers),
-            cookies=dict(r.cookies),
-            encoding=r.get_encoding(),
-            elapsed=getattr(r, 'elapsed', timedelta()),
-            history=[],  # Não há histórico para uma resposta anterior
-            reason=r.reason
-        )
-        for r in resp.history
-    ] if resp.history else []
+    elapsed = getattr(resp, "elapsed", timedelta())
+
+    history = (
+        [
+            AiohttpResponse(
+                status_code=r.status,
+                text=await r.text(),  # Obtendo o texto assíncrono
+                content=await r.read(),  # Obtendo o conteúdo assíncrono
+                url=str(r.url),
+                headers=dict(r.headers),
+                cookies=dict(r.cookies),
+                encoding=r.get_encoding(),
+                elapsed=getattr(r, "elapsed", timedelta()),
+                history=[],  # Não há histórico para uma resposta anterior
+                reason=r.reason,
+            )
+            for r in resp.history
+        ]
+        if resp.history
+        else []
+    )
 
     return AiohttpResponse(
         status_code=resp.status,
@@ -67,7 +72,7 @@ async def make_response(resp: aiohttp.ClientResponse) -> ResponseInterface:
         encoding=resp.get_encoding(),
         elapsed=elapsed,
         history=history,
-        reason=resp.reason
+        reason=resp.reason,
     )
 
 

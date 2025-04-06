@@ -20,25 +20,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Instalação de dependências para o pyenv
-      - name: Install pyenv dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libbz2-dev libreadline-dev libssl-dev zlib1g-dev
-
-      # Configuração do pyenv
-      - name: Set up Python using pyenv
-        uses: shalzz/setup-pyenv@v2
+      # Usando a ação oficial do GitHub para configurar o Python
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
+          cache: 'pip'
 
-      # Instalar o Python usando pyenv
-      - name: Install Python
-        run: |
-          pyenv install ${{ matrix.python-version }}
-          pyenv global ${{ matrix.python-version }}
-
-      # Instalar dependências do projeto e executar os testes
+      # Instalar o Poetry e dependências
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
