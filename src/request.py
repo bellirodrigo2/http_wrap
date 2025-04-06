@@ -1,11 +1,10 @@
+from collections.abc import AsyncGenerator, Iterable, Mapping
 from dataclasses import dataclass, field
-from typing import Any, AsyncIterable, Iterable, Literal, Mapping, Protocol, cast
+from typing import Any, Literal, Protocol, cast
 
 from src.response import ResponseInterface
 
 httpmethod = Literal["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"]
-from collections.abc import Mapping
-from typing import Any, Mapping
 
 
 @dataclass
@@ -18,7 +17,7 @@ class HTTPRequestOptions:
     verify_ssl: bool | None = None
     cookies: Mapping[str, str] | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.body is not None and not isinstance(self.body, dict):  # type: ignore # test espera dict
             raise TypeError("body must be a mapping")
 
@@ -54,7 +53,7 @@ class HTTPRequestConfig:
     url: str
     options: HTTPRequestOptions = field(default_factory=HTTPRequestOptions)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not isinstance(self.url, str) or not self.url:  # type: ignore
             raise ValueError("url must be a non-empty string")
 
@@ -63,7 +62,7 @@ class HTTPRequestConfig:
 
         self.validate()
 
-    def validate(self):
+    def validate(self) -> None:
         method = self.method.upper()
         has_body = method in {"POST", "PUT", "PATCH"}
         has_params = method in {"GET", "DELETE", "HEAD"}
@@ -93,14 +92,14 @@ class SyncHTTPRequest(Protocol):
 
 
 class AsyncHTTPRequest(Protocol):
-    async def init_session(self): ...
-    async def close_session(self): ...
+    async def init_session(self) -> None: ...
+    async def close_session(self) -> None: ...
 
     async def request(self, config: HTTPRequestConfig) -> ResponseInterface: ...
 
     async def requests(
         self, configs: list[HTTPRequestConfig], max: int
-    ) -> AsyncIterable[list[ResponseInterface]]: ...
+    ) -> AsyncGenerator[list[ResponseInterface], None]: ...
 
 
 HTTPRequest = SyncHTTPRequest | AsyncHTTPRequest

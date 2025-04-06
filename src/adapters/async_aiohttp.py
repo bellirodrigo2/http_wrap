@@ -1,6 +1,6 @@
 import asyncio
+from collections.abc import AsyncGenerator
 from dataclasses import dataclass
-from typing import AsyncIterable
 
 import aiohttp
 
@@ -44,12 +44,12 @@ async def make_reponse(resp: aiohttp.ClientResponse) -> ResponseInterface:
 class AioHttpAdapter(AsyncHTTPRequest):
     session: aiohttp.ClientSession | None = None
 
-    async def init_session(self, verify_ssl: bool = True):
+    async def init_session(self, verify_ssl: bool = True) -> None:
         if not self.session or self.session.closed:
             connector = aiohttp.TCPConnector(ssl=verify_ssl)
             self.session = aiohttp.ClientSession(connector=connector)
 
-    async def close_session(self):
+    async def close_session(self) -> None:
         if self.session and not self.session.closed:
             await self.session.close()
             self.session = None
@@ -59,13 +59,22 @@ class AioHttpAdapter(AsyncHTTPRequest):
         url = config.url
         opts: HTTPRequestOptions = config.options or HTTPRequestOptions()
 
+        if not self.session or self.session.closed:
+            raise Exception("Session is Closed")
+
+        timeout = (
+            aiohttp.ClientTimeout(total=opts.timeout)
+            if opts.timeout is not None
+            else None
+        )
+
         async with self.session.request(
             method,
             url,
             headers=opts.headers,
             params=opts.params,
             json=opts.body,
-            timeout=opts.timeout,
+            timeout=timeout,
             allow_redirects=(
                 opts.allow_redirects if opts.allow_redirects is not None else True
             ),
@@ -76,7 +85,7 @@ class AioHttpAdapter(AsyncHTTPRequest):
 
     async def requests(
         self, configs: list[HTTPRequestConfig], max: int
-    ) -> AsyncIterable[list[ResponseInterface]]:
+    ) -> AsyncGenerator[list[ResponseInterface], None]:  # type: ignore
         for i in range(0, len(configs), max):
             chunk = configs[i : i + max]
             tasks = [self.request(cfg) for cfg in chunk]
