@@ -14,7 +14,8 @@ jobs:
     
     strategy:
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12'] 
+        python-version: ['3.9', '3.10', '3.11', '3.12']  # Versões do Python que você deseja testar
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -36,4 +37,4 @@ jobs:
       # Rodar os testes com o Tox
       - name: Run tests with Tox
         run: |
-          poetry run tox --env=py${{ matrix.python-version }}
+          poetry run tox
