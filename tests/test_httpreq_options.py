@@ -1,4 +1,5 @@
 import pytest
+
 from src.request import HTTPRequestOptions
 
 
@@ -10,7 +11,7 @@ def test_valid_options_creation():
         timeout=10,
         allow_redirects=True,
         verify_ssl=True,
-        cookies={"session": "abc123"}
+        cookies={"session": "abc123"},
     )
 
     assert opts.headers["X-Test"] == "1"
@@ -22,11 +23,14 @@ def test_valid_options_creation():
     assert opts.cookies["session"] == "abc123"
 
 
-@pytest.mark.parametrize("field_name, value", [
-    ("headers", [("X-Test", "1")]),
-    ("params", [("q", "1")]),
-    ("cookies", [("c", "v")])
-])
+@pytest.mark.parametrize(
+    "field_name, value",
+    [
+        ("headers", [("X-Test", "1")]),
+        ("params", [("q", "1")]),
+        ("cookies", [("c", "v")]),
+    ],
+)
 def test_invalid_mapping_types(field_name, value):
     with pytest.raises(TypeError, match=f"{field_name} must be a mapping"):
         HTTPRequestOptions(**{field_name: value})
@@ -43,11 +47,9 @@ def test_invalid_timeout():
 
 
 def test_from_dict_success():
-    opts = HTTPRequestOptions.from_dict({
-        "headers": {"X-Test": "1"},
-        "timeout": 3.0,
-        "verify_ssl": False
-    })
+    opts = HTTPRequestOptions.from_dict(
+        {"headers": {"X-Test": "1"}, "timeout": 3.0, "verify_ssl": False}
+    )
 
     assert opts.headers["X-Test"] == "1"
     assert opts.timeout == 3.0
@@ -56,7 +58,6 @@ def test_from_dict_success():
 
 def test_from_dict_with_unknown_key():
     with pytest.raises(ValueError, match="Unknown option keys"):
-        HTTPRequestOptions.from_dict({
-            "unknown_field": 123,
-            "headers": {"X-Test": "ok"}
-        })
+        HTTPRequestOptions.from_dict(
+            {"unknown_field": 123, "headers": {"X-Test": "ok"}}
+        )

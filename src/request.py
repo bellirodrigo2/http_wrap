@@ -19,9 +19,7 @@ class HTTPRequestOptions:
     cookies: Mapping[str, str] | None = None
 
     def __post_init__(self):
-        if self.body is not None and not isinstance(
-            self.body, dict
-        ):  # type: ignore # test espera dict
+        if self.body is not None and not isinstance(self.body, dict):  # type: ignore # test espera dict
             raise TypeError("body must be a mapping")
 
         for attr_name in ("headers", "params", "cookies"):
@@ -95,7 +93,6 @@ class SyncHTTPRequest(Protocol):
 
 
 class AsyncHTTPRequest(Protocol):
-
     async def init_session(self): ...
     async def close_session(self): ...
 

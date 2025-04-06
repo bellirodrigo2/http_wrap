@@ -2,8 +2,12 @@
 name = "http-wrap"
 version = "0.1.0"
 description = ""
-authors = ["rodbell"]
+authors = ["rodbell <bellirodrigo2@gmail.com>"]
+license = "MIT"
 readme = "README.md"
+homepage = "https://github.com/bellirodrigo2/http_wrap"
+repository = "https://github.com/bellirodrigo2/http_wrap"
+keywords = ["http", "requests", "aiohttp"]
 
 [tool.poetry.dependencies]
 python = "^3.12"

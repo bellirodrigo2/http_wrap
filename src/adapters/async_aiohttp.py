@@ -72,7 +72,6 @@ class AioHttpAdapter(AsyncHTTPRequest):
             # verify=opts.verify_ssl if opts.verify_ssl is not None else True,
             cookies=dict(opts.cookies) if opts.cookies else None,
         ) as resp:
-
             return await make_reponse(resp)
 
     async def requests(
