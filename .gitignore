@@ -1,6 +1,19 @@
 todo
 
-*.cmd
+.python-version
+
+# Ignorar ambientes virtuais criados pelo Tox
+.tox/
+
+# Ignorar caches criados pelo pytest durante os testes no Tox
+.tox/.pytest_cache/
+
+# Ignorar pacotes temporários criados durante o processo de build no Tox
+*.egg
+*.egg-info
+dist/
+build/
+
 
 #config file
 /src/config.yml
