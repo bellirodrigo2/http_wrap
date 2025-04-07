@@ -38,7 +38,7 @@ async def make_response(resp: aiohttp.ClientResponse) -> ResponseInterface:
 
     elapsed = getattr(resp, "elapsed", timedelta())
 
-    history = (
+    history: list[ResponseInterface] = (
         [
             AiohttpResponse(
                 status_code=r.status,
@@ -46,11 +46,10 @@ async def make_response(resp: aiohttp.ClientResponse) -> ResponseInterface:
                 content=await r.read(),  # Obtendo o conteúdo assíncrono
                 url=str(r.url),
                 headers=dict(r.headers),
-                cookies=dict(r.cookies),
+                cookies={k: v.value for k, v in r.cookies.items()},
                 encoding=r.get_encoding(),
                 elapsed=getattr(r, "elapsed", timedelta()),
                 history=[],  # Não há histórico para uma resposta anterior
-                reason=r.reason,
             )
             for r in resp.history
         ]
@@ -64,11 +63,10 @@ async def make_response(resp: aiohttp.ClientResponse) -> ResponseInterface:
         content=content,
         url=str(resp.url),
         headers=dict(resp.headers),
-        cookies=dict(resp.cookies),
+        cookies={k: v.value for k, v in resp.cookies.items()},
         encoding=resp.get_encoding(),
         elapsed=elapsed,
         history=history,
-        reason=resp.reason,
     )
     return ResponseProxy(response)
 
@@ -89,7 +87,6 @@ class AioHttpAdapter(AsyncHTTPRequest):
             self.session = None
 
     async def request(self, config: HTTPRequestConfig) -> ResponseInterface:
-
         config.validate()
 
         if config.options.verify != self.verify_ssl:
@@ -112,12 +109,12 @@ class AioHttpAdapter(AsyncHTTPRequest):
             total=config.options.timeout
         )
 
-        async with self.session.request(
+        async with self.session.request(  # type: ignore
             method=config.method, url=config.url, **request_kwargs
         ) as resp:
             return await make_response(resp)
 
-    async def requests(
+    async def requests(  # type: ignore
         self, configs: list[HTTPRequestConfig], max: int
     ) -> AsyncGenerator[list[ResponseInterface], None]:  # type: ignore
         for i in range(0, len(configs), max):

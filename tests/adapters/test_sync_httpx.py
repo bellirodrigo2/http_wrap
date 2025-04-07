@@ -1,9 +1,12 @@
+from datetime import timedelta
 from urllib.parse import urlencode
 
 import httpx
 import pytest
 
 from http_wrap import HTTPRequestConfig, HTTPRequestOptions
+from http_wrap.response import ResponseInterface, ResponseProxy
+from http_wrap.security import Headers
 from http_wrap.sync_adapters import HttpxAdapter
 
 
@@ -98,3 +101,32 @@ def test_sync_httpx_methods(
 
     # Verifica que a URL retornada inclui a query string se houver params
     assert response.url == full_url
+
+
+def test_response_proxy_with_httpx(httpx_mock):
+    httpx_mock.add_response(
+        method="GET",
+        url="https://example.com",
+        json={"message": "ok"},
+        headers={"Authorization": "hidden-token", "X-Test": "123"},
+    )
+
+    resp = httpx.get("https://example.com")
+    proxy = ResponseProxy(resp)
+
+    assert isinstance(proxy, ResponseInterface)
+    assert proxy.status_code == 200
+    assert proxy.text
+    assert proxy.content
+    assert proxy.url.rstrip("/") == "https://example.com"
+    assert isinstance(proxy.headers, Headers)
+    assert "x-test" in proxy.headers
+    assert proxy.headers["x-test"] == "123"
+    assert "Authorization" not in str(proxy.headers)
+    assert "<redacted>" in str(proxy.headers)
+    assert proxy.headers.raw()["authorization"] == "hidden-token"
+    assert isinstance(proxy.cookies, dict)
+    assert isinstance(proxy.json(), dict)
+    assert isinstance(proxy.encoding, str)
+    assert isinstance(proxy.elapsed, timedelta)
+    assert isinstance(proxy.history, list)

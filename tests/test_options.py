@@ -64,7 +64,11 @@ def test_from_dict_with_unknown_key():
         )
 
 
-def test_headers_repr_does_not_expose_values():
+def test_headers_repr_does_not_expose_values(monkeypatch):
+    monkeypatch.setattr(
+        "http_wrap.security.get_settings",
+        lambda: type("S", (), {"redact_headers": ["authorization", "x-api-key"]})(),
+    )
     sensitive = {"Authorization": "secret-token", "X-Api-Key": "123456"}
     headers = Headers(sensitive)
 

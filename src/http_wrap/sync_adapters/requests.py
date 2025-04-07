@@ -12,7 +12,6 @@ class RequestsAdapter(SyncHTTPRequest):
     session: requests.Session = field(default_factory=requests.Session)
 
     def request(self, config: HTTPRequestConfig) -> ResponseInterface:
-
         config.validate()
 
         request_kwargs = config.options.dump(

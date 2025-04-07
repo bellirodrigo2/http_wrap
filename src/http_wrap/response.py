@@ -36,7 +36,7 @@ class ResponseInterface(Protocol):
 class ResponseProxy(ResponseInterface):
     _response: Any = field(repr=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not RedirectPolicy.is_enabled():
             return  # skip check if disabled
 

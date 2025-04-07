@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 from http_wrap import HTTPRequestConfig, HTTPRequestOptions, settings
@@ -102,7 +104,7 @@ def test_allow_internal_flag_without_class_call_should_fail():
 
     with pytest.raises(
         ValueError,
-        match="Internal IP access is disabled. Use settings.configure",
+        match=re.escape("Internal IP access is disabled."),
     ):
         HTTPRequestConfig(
             method="GET",

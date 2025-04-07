@@ -1,6 +1,6 @@
 import ipaddress
 import socket
-from collections.abc import Mapping
+from collections.abc import ItemsView, KeysView, Mapping, ValuesView
 from dataclasses import dataclass, field
 from typing import Any, Iterator
 from urllib.parse import urlparse
@@ -58,13 +58,13 @@ class Headers(Mapping):
             return "<redacted>"
         return self._headers.get(k, default)
 
-    def items(self):
+    def items(self) -> ItemsView[str, str]:
         return self._headers.items()
 
-    def keys(self):
+    def keys(self) -> KeysView[str]:
         return self._headers.keys()
 
-    def values(self):
+    def values(self) -> ValuesView[str]:
         return self._headers.values()
 
     def raw(self) -> dict[str, str]:
@@ -96,7 +96,7 @@ class RedirectPolicy:
         *,
         enabled: bool = True,
         allow_cross_domain: bool = False,
-        trusted_domains: list[str] = None,
+        trusted_domains: set[str] = set([]),
     ) -> None:
         cls._enabled = enabled
         cls._allow_cross_domain = allow_cross_domain

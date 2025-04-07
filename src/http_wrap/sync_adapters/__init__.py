@@ -1,2 +1,4 @@
+from .httpx import HttpxAdapter
 from .requests import RequestsAdapter
-from.httpx import HttpxAdapter
+
+__all__ = ["HttpxAdapter", "RequestsAdapter"]

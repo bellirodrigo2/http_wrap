@@ -1,6 +1,6 @@
 from collections.abc import AsyncGenerator, Iterable, Mapping
 from dataclasses import asdict, dataclass, field
-from typing import Any, Literal, Optional, Protocol, Union, cast, get_args
+from typing import Any, Literal, Optional, Protocol, Union, get_args
 from urllib.parse import urlparse
 
 from http_wrap.response import ResponseInterface
@@ -98,8 +98,8 @@ class HTTPRequestConfig:
         if not get_settings().allow_internal_access:
             if self.allow_internal:
                 raise ValueError(
-                    "Internal IP access is disabled. "
-                    "Use settings.configure(allow_internal_access=True) to enable it."
+                    """Internal IP access is disabled. 
+                    Use settings.configure(allow_internal_access=True) to enable it."""
                 )
             self.allow_internal = False
 
@@ -115,6 +115,9 @@ class HTTPRequestConfig:
             raise ValueError(f"Invalid URL scheme: {parsed.scheme}")
 
         if not parsed.netloc:
+            raise ValueError("URL must have a valid hostname")
+
+        if not parsed.hostname:
             raise ValueError("URL must have a valid hostname")
 
         if not self.allow_internal and is_internal_address(parsed.hostname):
