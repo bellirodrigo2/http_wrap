@@ -25,9 +25,7 @@ class RequestsAdapter(SyncHTTPRequest):
             params=opts.params,
             json=opts.body,
             timeout=opts.timeout,
-            allow_redirects=(
-                opts.allow_redirects if opts.allow_redirects is not None else True
-            ),
+            allow_redirects=opts.allow_redirects,
             verify=opts.verify_ssl if opts.verify_ssl is not None else True,
             cookies=dict(opts.cookies) if opts.cookies else None,
         )

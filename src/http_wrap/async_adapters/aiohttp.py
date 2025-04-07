@@ -79,12 +79,13 @@ async def make_response(resp: aiohttp.ClientResponse) -> ResponseInterface:
 @dataclass
 class AioHttpAdapter(AsyncHTTPRequest):
     session: Optional[aiohttp.ClientSession] = None
+    verify_ssl: bool = True
 
-    async def init_session(self, verify_ssl: bool = True) -> None:
+    async def init_session(self) -> None:
         if not self.session or self.session.closed:
-            connector = aiohttp.TCPConnector(ssl=verify_ssl)
+            connector = aiohttp.TCPConnector(ssl=self.verify_ssl)
             self.session = aiohttp.ClientSession(connector=connector)
-
+    
     async def close_session(self) -> None:
         if self.session and not self.session.closed:
             await self.session.close()
@@ -95,8 +96,15 @@ class AioHttpAdapter(AsyncHTTPRequest):
         url = config.url
         opts: HTTPRequestOptions = config.options or HTTPRequestOptions()
 
+        if opts.verify_ssl != self.verify_ssl:
+            await self.close_session()
+            
+            self.verify_ssl = opts.verify_ssl
+            connector = aiohttp.TCPConnector(ssl=self.verify_ssl)
+            self.session = aiohttp.ClientSession(connector=connector)
+
         if not self.session or self.session.closed:
-            raise Exception("Session is Closed")
+            await self.init_session()
 
         timeout = (
             aiohttp.ClientTimeout(total=opts.timeout)
@@ -111,9 +119,7 @@ class AioHttpAdapter(AsyncHTTPRequest):
             params=opts.params,
             json=opts.body,
             timeout=timeout,
-            allow_redirects=(
-                opts.allow_redirects if opts.allow_redirects is not None else True
-            ),
+            allow_redirects=opts.allow_redirects,
             # verify=opts.verify_ssl if opts.verify_ssl is not None else True,
             cookies=dict(opts.cookies) if opts.cookies else None,
         ) as resp:

@@ -14,7 +14,7 @@ class HTTPRequestOptions:
     body: Optional[dict[str, Any]] = None
     timeout: Optional[float] = None
     allow_redirects: Optional[bool] = None
-    verify_ssl: Optional[bool] = None
+    verify_ssl: bool = True
     cookies: Optional[Mapping[str, str]] = None
 
     def __post_init__(self) -> None:

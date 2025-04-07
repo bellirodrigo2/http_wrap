@@ -8,8 +8,8 @@ from src.http_wrap import HTTPRequestConfig, HTTPRequestOptions, ResponseInterfa
 
 @pytest.fixture
 async def adapter():
-    adapter = AioHttpAdapter()
-    await adapter.init_session(verify_ssl=False)
+    adapter = AioHttpAdapter(verify_ssl=False)
+    await adapter.init_session()
     yield adapter
     await adapter.close_session()
 
@@ -41,9 +41,7 @@ def make_config(
         ("HEAD", 200, None),
     ],
 )
-async def test_http_methods_success(method, expected_status, payload):
-    adapter = AioHttpAdapter()
-    await adapter.init_session(verify_ssl=False)
+async def test_http_methods_success(adapter, method, expected_status, payload):
 
     config = make_config(method, BASE_URL, payload)
 
@@ -61,9 +59,7 @@ async def test_http_methods_success(method, expected_status, payload):
 
 
 @pytest.mark.asyncio
-async def test_request_with_params_and_headers():
-    adapter = AioHttpAdapter()
-    await adapter.init_session(verify_ssl=False)
+async def test_request_with_params_and_headers(adapter):
 
     config = make_config(
         "GET",
@@ -82,9 +78,7 @@ async def test_request_with_params_and_headers():
 
 
 @pytest.mark.asyncio
-async def test_request_raises_client_error():
-    adapter = AioHttpAdapter()
-    await adapter.init_session(verify_ssl=False)
+async def test_request_raises_client_error(adapter):
 
     config = make_config("GET", BASE_URL)
 

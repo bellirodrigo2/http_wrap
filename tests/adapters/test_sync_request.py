@@ -13,7 +13,6 @@ def client():
     return RequestsAdapter()
 
 
-# Parametrização para vários métodos e cenários:
 @pytest.mark.parametrize(
     "method, url, options, expected_status, expected_response_text",
     [
