@@ -7,7 +7,7 @@
 The goal is to enable clean and flexible usage across projects, while supporting:
 - Full HTTP method support: GET, POST, PUT, PATCH, DELETE, HEAD
 - Unified interface via `HTTPRequestConfig` and `HTTPRequestOptions`
-- Response abstraction via `ResponseInterface`
+- Response abstraction via `ResponseInterface` and `ResponseProxy`
 - Batch support for async requests
 - Decoupling and testability via dependency injection
 - Compatibility with Clean Architecture and DDD
@@ -18,11 +18,12 @@ The goal is to enable clean and flexible usage across projects, while supporting
 - ✅ Async support via `AioHttpAdapter` (using `aiohttp`)
 - ✅ Custom configuration for headers, query params, body, timeouts, redirects, SSL, and cookies
 - ✅ Batch execution of async requests
-- ✅ Easy mocking for testing using `responses` and `aioresponses`
+- ✅ Easy mocking for testing using `responses`, `aioresponses`, and `pytest-httpx`
 - ✅ Built-in protection against requests to internal/private IPs (optional)
-- ✅ Global timeout configuration via factory method
+- ✅ Global timeout configuration via `configure()`
 - ✅ Redaction of sensitive headers (e.g. Authorization)
-- ✅ Configurable redirect policy via `RedirectPolicy`
+- ✅ Configurable redirect policy via `configure()`
+- ✅ Unified response wrapper via `ResponseProxy`
 
 ## Installation
 
@@ -80,61 +81,93 @@ async def main():
 asyncio.run(main())
 ```
 
-## Advanced Configuration
+## Global Configuration
 
-### Enforcing a Default Timeout
-
-You can set a global default timeout using the factory method `force_default_timeout` in `HTTPRequestOptions`:
+You can configure global behavior using the `configure()` function:
 
 ```python
-from http_wrap.request import HTTPRequestOptions
+from http_wrap.config import configure
 
-HTTPRequestOptions.force_default_timeout(5.0)  # All requests default to 5 seconds unless explicitly set
+configure(
+    default_timeout=5.0,  # Set default timeout for all requests
+    allow_internal_access=True,  # Allow requests to localhost / private IPs
+    redact_headers=["Authorization", "X-API-KEY"],  # Mask headers in logs/debug
+    redirect_policy={
+        "enabled": True,
+        "allow_cross_domain": False,
+        "trusted_domains": ["example.com"]
+    }
+)
 ```
 
-Each request can still override the timeout by passing a specific value.
+All options are optional, and individual requests can still override them.
 
 ---
 
-### Blocking Requests to Internal IPs
+### Blocking Requests to Internal IPs (Default Behavior)
 
-To prevent accidental requests to internal or private IP addresses (e.g. `127.0.0.1`, `192.168.x.x`), this behavior is enabled by default:
+By default, requests to internal or private IPs (e.g. `127.0.0.1`, `192.168.x.x`) are **blocked** unless allowed via configuration:
 
 ```python
-from http_wrap.request import HTTPRequestConfig, HTTPRequestOptions
+from http_wrap.config import configure
 
-# This will raise an error unless internal access is explicitly allowed
-HTTPRequestConfig.allow_internal_access()  # Enable internal access globally
+configure(allow_internal_access=True)
+
+# You must still mark each request as safe
+from http_wrap.request import HTTPRequestConfig, HTTPRequestOptions
 
 config = HTTPRequestConfig(
     method="GET",
     url="http://localhost",
     options=HTTPRequestOptions(),
-    allow_internal=True  # Must still be set per-request
+    allow_internal=True
 )
 ```
 
-### Keeping Internal Access Disabled by Default
+If `configure(allow_internal_access=True)` is **not** called, requests to internal IPs will raise an error regardless of the `allow_internal` flag.
 
-If `HTTPRequestConfig.allow_internal_access()` is **not** called, any attempt to access internal addresses—even with `allow_internal=True`—will raise an error. This ensures security out of the box.
+---
+
+### Default Timeout
+
+Set a global timeout for all requests unless explicitly overridden:
+
+```python
+from http_wrap.config import configure
+
+configure(default_timeout=3.0)
+
+# You can still override per-request:
+config = HTTPRequestConfig(
+    method="GET",
+    url="https://httpbin.org/delay/2",
+    options=HTTPRequestOptions(timeout=5.0)
+)
+```
 
 ---
 
 ### Configurable Redirect Policy
 
-You can configure global redirect behavior using `RedirectPolicy`:
+To control redirect behavior globally:
 
 ```python
-from http_wrap.security import RedirectPolicy
+from http_wrap.config import configure
 
-RedirectPolicy.set_redirect_policy(
-    enabled=True,  # Enable redirect filtering
-    allow_cross_domain=False,  # Disallow redirects to a different domain
-    trusted_domains=["example.com"]  # Allow redirects only to these domains
+configure(
+    redirect_policy={
+        "enabled": True,
+        "allow_cross_domain": False,
+        "trusted_domains": ["example.com"]
+    }
 )
 ```
 
-This applies to all clients that respect `RedirectPolicy`. Note that `HTTPRequestOptions.allow_redirects` controls redirect behavior per request (e.g., enable or disable following redirects entirely).
+This prevents redirects to untrusted domains. You can also control per-request behavior using:
+
+```python
+HTTPRequestOptions(allow_redirects=False)
+```
 
 ---
 

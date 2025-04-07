@@ -1,6 +1,6 @@
 import pytest
 
-from http_wrap import HTTPRequestConfig, HTTPRequestOptions
+from http_wrap import HTTPRequestConfig, HTTPRequestOptions, settings
 
 
 @pytest.fixture
@@ -76,6 +76,7 @@ def test_invalid_params_type():
     "url", ["http://127.0.0.1", "http://localhost", "http://192.168.1.1"]
 )
 def test_block_internal_ip_by_default(url):
+    settings.configure(allow_internal_access=False)
     with pytest.raises(ValueError, match="Internal address '.*' is not allowed"):
         HTTPRequestConfig(
             method="GET", url=url, options=HTTPRequestOptions(params={"x": "1"})
@@ -86,8 +87,7 @@ def test_block_internal_ip_by_default(url):
     "url", ["http://127.0.0.1", "http://localhost", "http://192.168.1.1"]
 )
 def test_allow_internal_ip_if_flag_set(url):
-    # habilita globalmente
-    HTTPRequestConfig.allow_internal_access()
+    settings.configure(allow_internal_access=True)
     config = HTTPRequestConfig(
         method="GET",
         url=url,
@@ -97,13 +97,12 @@ def test_allow_internal_ip_if_flag_set(url):
     assert config.url == url
 
 
-def test_allow_internal_flag_without_class_call_should_fail(monkeypatch):
-    # Garante isolamento do flag global
-    monkeypatch.setattr(HTTPRequestConfig, "_allow_internal", False)
+def test_allow_internal_flag_without_class_call_should_fail():
+    settings.configure(allow_internal_access=False)
 
     with pytest.raises(
         ValueError,
-        match="Internal IP access is disabled. Use HTTPRequestConfig.allow_internal_access",
+        match="Internal IP access is disabled. Use settings.configure",
     ):
         HTTPRequestConfig(
             method="GET",
@@ -113,9 +112,8 @@ def test_allow_internal_flag_without_class_call_should_fail(monkeypatch):
         )
 
 
-def test_allow_internal_access_then_disable(monkeypatch):
-    # Habilita, testa, depois desabilita
-    HTTPRequestConfig.allow_internal_access()
+def test_allow_internal_access_then_disable():
+    settings.configure(allow_internal_access=True)
     config = HTTPRequestConfig(
         method="GET",
         url="http://localhost",
@@ -124,5 +122,12 @@ def test_allow_internal_access_then_disable(monkeypatch):
     )
     assert config.url.startswith("http://localhost")
 
-    # Limpa para não impactar outros testes
-    monkeypatch.setattr(HTTPRequestConfig, "_allow_internal", False)
+    # Desativa depois
+    settings.configure(allow_internal_access=False)
+    with pytest.raises(ValueError):
+        HTTPRequestConfig(
+            method="GET",
+            url="http://localhost",
+            options=HTTPRequestOptions(params={"x": "1"}),
+            allow_internal=True,
+        )

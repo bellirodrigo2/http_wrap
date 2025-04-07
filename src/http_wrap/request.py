@@ -3,8 +3,9 @@ from dataclasses import asdict, dataclass, field
 from typing import Any, Literal, Optional, Protocol, Union, cast, get_args
 from urllib.parse import urlparse
 
+from http_wrap.response import ResponseInterface
 from http_wrap.security import Headers, is_internal_address
-from src.http_wrap.response import ResponseInterface
+from http_wrap.settings import get_settings
 
 httpmethod = Literal["get", "post", "put", "patch", "delete", "head"]
 
@@ -13,10 +14,6 @@ ALLOWED_METHODS = set(get_args(httpmethod))
 METHODS_WITH_BODY = {"post", "put", "patch"}
 METHODS_WITH_PARAMS = {"get", "delete", "head"}
 METHODS_WITH_REDIRECTS = {"get", "options"}
-
-
-from dataclasses import dataclass
-from typing import Any, Mapping, Optional
 
 
 @dataclass
@@ -43,8 +40,8 @@ class HTTPRequestOptions:
                 if not all(isinstance(k, str) for k in val.keys()):
                     raise TypeError(f"All keys in {attr_name} must be strings")
 
-        if self.timeout is None and hasattr(self.__class__, "_default_timeout"):
-            self.timeout = self.__class__._default_timeout
+        if self.timeout is None:
+            self.timeout = get_settings().default_timeout
 
         if self.timeout is not None and self.timeout <= 0:
             raise ValueError("timeout must be a positive number")
@@ -76,12 +73,6 @@ class HTTPRequestOptions:
             raise ValueError(f"Unknown option keys: {unknown_keys}")
         return cls(**data)
 
-    @classmethod
-    def force_default_timeout(cls, value: float) -> None:
-        if value <= 0:
-            raise ValueError("default timeout must be positive")
-        cls._default_timeout = value
-
 
 @dataclass
 class HTTPRequestConfig:
@@ -104,10 +95,11 @@ class HTTPRequestConfig:
         if not isinstance(self.options, HTTPRequestOptions):
             raise TypeError("options must be of type HTTPRequestOptions")
 
-        if not getattr(self.__class__, "_allow_internal", False):
+        if not get_settings().allow_internal_access:
             if self.allow_internal:
                 raise ValueError(
-                    "Internal IP access is disabled. Use HTTPRequestConfig.allow_internal_access() to enable it explicitly."
+                    "Internal IP access is disabled. "
+                    "Use settings.configure(allow_internal_access=True) to enable it."
                 )
             self.allow_internal = False
 
@@ -150,10 +142,6 @@ class HTTPRequestConfig:
         if has_params and self.options.params is not None:
             if not isinstance(self.options.params, dict):
                 raise TypeError(f"{method_upper} request expects params to be a dict")
-
-    @classmethod
-    def allow_internal_access(cls) -> None:
-        cls._allow_internal = True
 
 
 class SyncHTTPRequest(Protocol):
