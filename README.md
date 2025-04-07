@@ -7,7 +7,7 @@
 The goal is to enable clean and flexible usage across projects, while supporting:
 - Full HTTP method support: GET, POST, PUT, PATCH, DELETE, HEAD
 - Unified interface via `HTTPRequestConfig` and `HTTPRequestOptions`
-- Response abstraction via `ResponseInterface` and `ResponseProxy`
+- Response abstraction via `ResponseInterface`
 - Batch support for async requests
 - Decoupling and testability via dependency injection
 - Compatibility with Clean Architecture and DDD
@@ -18,12 +18,11 @@ The goal is to enable clean and flexible usage across projects, while supporting
 - ✅ Async support via `AioHttpAdapter` (using `aiohttp`)
 - ✅ Custom configuration for headers, query params, body, timeouts, redirects, SSL, and cookies
 - ✅ Batch execution of async requests
-- ✅ Easy mocking for testing using `responses`, `aioresponses`, and `pytest-httpx`
+- ✅ Easy mocking for testing using `responses` and `aioresponses`
 - ✅ Built-in protection against requests to internal/private IPs (optional)
-- ✅ Global timeout configuration via `configure()`
-- ✅ Redaction of sensitive headers (e.g. Authorization)
-- ✅ Configurable redirect policy via `configure()`
-- ✅ Unified response wrapper via `ResponseProxy`
+- ✅ Global timeout configuration via factory method
+- ✅ Configurable redirect policy via `RedirectPolicy`
+- ✅ Redação automática de headers sensíveis como `Authorization` e `Proxy-Authorization`
 
 ## Installation
 
@@ -43,13 +42,13 @@ poetry add http-wrap
 
 ```python
 from http_wrap.sync_adapters import RequestsAdapter
-from http_wrap.request import HTTPRequestConfig, HTTPRequestOptions
+from http_wrap.request import configure
 
 client = RequestsAdapter()
-config = HTTPRequestConfig(
+config = configure(
     method="GET",
     url="https://httpbin.org/get",
-    options=HTTPRequestOptions(params={"q": "test"})
+    params={"q": "test"},
 )
 
 response = client.request(config)
@@ -61,16 +60,16 @@ print(response.status_code, response.text)
 ```python
 import asyncio
 from http_wrap.async_adapters import AioHttpAdapter
-from http_wrap.request import HTTPRequestConfig, HTTPRequestOptions
+from http_wrap.request import configure
 
 async def main():
     client = AioHttpAdapter()
     await client.init_session()
 
-    config = HTTPRequestConfig(
+    config = configure(
         method="POST",
         url="https://httpbin.org/post",
-        options=HTTPRequestOptions(json={"name": "async"})
+        json={"name": "async"},
     )
 
     response = await client.request(config)
@@ -81,92 +80,86 @@ async def main():
 asyncio.run(main())
 ```
 
-## Global Configuration
+## Advanced Configuration
 
-You can configure global behavior using the `configure()` function:
+### Enforcing a Default Timeout
+
+You can set a global default timeout using the factory method `force_default_timeout` in `HTTPRequestOptions`:
 
 ```python
-from http_wrap.config import configure
+from http_wrap.request import HTTPRequestOptions
 
-configure(
-    default_timeout=5.0,  # Set default timeout for all requests
-    allow_internal_access=True,  # Allow requests to localhost / private IPs
-    redact_headers=["Authorization", "X-API-KEY"],  # Mask headers in logs/debug
-    redirect_policy={
-        "enabled": True,
-        "allow_cross_domain": False,
-        "trusted_domains": ["example.com"]
-    }
-)
+HTTPRequestOptions.force_default_timeout(5.0)  # All requests default to 5 seconds unless explicitly set
 ```
 
-All options are optional, and individual requests can still override them.
+Each request can still override the timeout by passing a specific value.
 
 ---
 
-### Blocking Requests to Internal IPs (Default Behavior)
+### Blocking Requests to Internal IPs
 
-By default, requests to internal or private IPs (e.g. `127.0.0.1`, `192.168.x.x`) are **blocked** unless allowed via configuration:
+To prevent accidental requests to internal or private IP addresses (e.g. `127.0.0.1`, `192.168.x.x`), this behavior is enabled by default:
 
 ```python
-from http_wrap.config import configure
+from http_wrap.request import configure, HTTPRequestConfig
 
-configure(allow_internal_access=True)
+# Enable internal access globally
+HTTPRequestConfig.allow_internal_access()
 
-# You must still mark each request as safe
-from http_wrap.request import HTTPRequestConfig, HTTPRequestOptions
-
-config = HTTPRequestConfig(
+config = configure(
     method="GET",
     url="http://localhost",
-    options=HTTPRequestOptions(),
-    allow_internal=True
+    allow_internal=True,
 )
 ```
 
-If `configure(allow_internal_access=True)` is **not** called, requests to internal IPs will raise an error regardless of the `allow_internal` flag.
-
----
-
-### Default Timeout
-
-Set a global timeout for all requests unless explicitly overridden:
-
-```python
-from http_wrap.config import configure
-
-configure(default_timeout=3.0)
-
-# You can still override per-request:
-config = HTTPRequestConfig(
-    method="GET",
-    url="https://httpbin.org/delay/2",
-    options=HTTPRequestOptions(timeout=5.0)
-)
-```
+If `HTTPRequestConfig.allow_internal_access()` is **not** called, any attempt to access internal addresses—even with `allow_internal=True`—will raise an error. This ensures security out of the box.
 
 ---
 
 ### Configurable Redirect Policy
 
-To control redirect behavior globally:
+You can configure global redirect behavior using `RedirectPolicy`:
 
 ```python
-from http_wrap.config import configure
+from http_wrap.security import RedirectPolicy
 
-configure(
-    redirect_policy={
-        "enabled": True,
-        "allow_cross_domain": False,
-        "trusted_domains": ["example.com"]
-    }
+RedirectPolicy.set_redirect_policy(
+    enabled=True,  # Enable redirect filtering
+    allow_cross_domain=False,  # Disallow redirects to a different domain
+    trusted_domains=["example.com"]  # Allow redirects only to these domains
 )
 ```
+If not configured, the redirect policy is disabled by default (enabled=False), meaning all redirects are allowed normally.
 
-This prevents redirects to untrusted domains. You can also control per-request behavior using:
+The `HTTPRequestOptions.allow_redirects` option controls redirect behavior per request (i.e., whether to follow redirects or not).
+
+This policy applies globally to all clients that support RedirectPolicy.
+
+---
+
+### ✅ Redação de Headers Sensíveis
+
+Por padrão, headers sensíveis como `Authorization` e `Proxy-Authorization` são ocultados quando impressos ou logados para evitar vazamento de credenciais:
 
 ```python
-HTTPRequestOptions(allow_redirects=False)
+from http_wrap.request import configure
+
+config = configure(
+    method="GET",
+    url="https://httpbin.org/anything",
+    headers={"Authorization": "Bearer super-secret-token"}
+)
+
+print(config)  # Authorization será exibido como "****"
+```
+
+Você pode adicionar headers personalizados à lista de sanitização:
+
+```python
+from http_wrap.security import SensitiveHeaders
+
+SensitiveHeaders.add("X-Api-Key")
 ```
 
 ---
@@ -174,3 +167,4 @@ HTTPRequestOptions(allow_redirects=False)
 ## License
 
 MIT
+
