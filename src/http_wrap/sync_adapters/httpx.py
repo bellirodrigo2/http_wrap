@@ -4,7 +4,7 @@ from typing import Iterable
 import httpx
 
 from http_wrap.request import HTTPRequestConfig, SyncHTTPRequest
-from http_wrap.response import ResponseInterface
+from http_wrap.response import ResponseInterface, ResponseProxy
 
 
 @dataclass
@@ -28,7 +28,7 @@ class HttpxAdapter(SyncHTTPRequest):
             method=config.method, url=config.url, **request_kwargs
         )
 
-        return response
+        return ResponseProxy(response)
 
     def requests(
         self, configs: list[HTTPRequestConfig], max: int = 1

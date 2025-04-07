@@ -1,6 +1,7 @@
 import pytest
 
-from src.http_wrap import HTTPRequestOptions
+from http_wrap.request import HTTPRequestOptions
+from http_wrap.security import Headers
 
 
 def test_valid_options_creation():
@@ -61,3 +62,18 @@ def test_from_dict_with_unknown_key():
         HTTPRequestOptions.from_dict(
             {"unknown_field": 123, "headers": {"X-Test": "ok"}}
         )
+
+
+def test_headers_repr_does_not_expose_values():
+    sensitive = {"Authorization": "secret-token", "X-Api-Key": "123456"}
+    headers = Headers(sensitive)
+
+    output = repr(headers)
+    assert "secret-token" not in output
+    assert "123456" not in output
+    assert "authorization" in output  # lowercase
+    assert "x-api-key" in output
+
+    output_str = str(headers)
+    assert "secret-token" not in output_str
+    assert "123456" not in output_str

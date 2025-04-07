@@ -6,12 +6,8 @@ from typing import Any, Optional
 
 import aiohttp
 
-from src.http_wrap.request import (
-    AsyncHTTPRequest,
-    HTTPRequestConfig,
-    HTTPRequestOptions,
-)
-from src.http_wrap.response import ResponseInterface
+from http_wrap.request import AsyncHTTPRequest, HTTPRequestConfig
+from http_wrap.response import ResponseInterface, ResponseProxy
 
 
 @dataclass(frozen=True)
@@ -62,7 +58,7 @@ async def make_response(resp: aiohttp.ClientResponse) -> ResponseInterface:
         else []
     )
 
-    return AiohttpResponse(
+    response = AiohttpResponse(
         status_code=resp.status,
         text=text,
         content=content,
@@ -74,6 +70,7 @@ async def make_response(resp: aiohttp.ClientResponse) -> ResponseInterface:
         history=history,
         reason=resp.reason,
     )
+    return ResponseProxy(response)
 
 
 @dataclass

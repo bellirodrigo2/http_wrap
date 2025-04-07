@@ -3,8 +3,8 @@ from typing import Iterable
 
 import requests
 
-from src.http_wrap.request import HTTPRequestConfig, SyncHTTPRequest
-from src.http_wrap.response import ResponseInterface
+from http_wrap.request import HTTPRequestConfig, SyncHTTPRequest
+from http_wrap.response import ResponseInterface, ResponseProxy
 
 
 @dataclass
@@ -22,7 +22,7 @@ class RequestsAdapter(SyncHTTPRequest):
         response = self.session.request(
             method=config.method, url=config.url, **request_kwargs
         )
-        return response
+        return ResponseProxy(response)
 
     def requests(
         self, configs: list[HTTPRequestConfig], max: int = 1

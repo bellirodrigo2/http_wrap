@@ -3,7 +3,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Any, Literal, Optional, Protocol, Union, cast, get_args
 from urllib.parse import urlparse
 
-from http_wrap.security import is_internal_address
+from http_wrap.security import Headers, is_internal_address
 from src.http_wrap.response import ResponseInterface
 
 httpmethod = Literal["get", "post", "put", "patch", "delete", "head"]
@@ -13,6 +13,10 @@ ALLOWED_METHODS = set(get_args(httpmethod))
 METHODS_WITH_BODY = {"post", "put", "patch"}
 METHODS_WITH_PARAMS = {"get", "delete", "head"}
 METHODS_WITH_REDIRECTS = {"get", "options"}
+
+
+from dataclasses import dataclass
+from typing import Any, Mapping, Optional
 
 
 @dataclass
@@ -36,7 +40,6 @@ class HTTPRequestOptions:
                     raise TypeError(
                         f"{attr_name} must be a mapping, got {type(val).__name__}"
                     )
-                val = cast(Mapping[Any, Any], val)
                 if not all(isinstance(k, str) for k in val.keys()):
                     raise TypeError(f"All keys in {attr_name} must be strings")
 
@@ -45,6 +48,12 @@ class HTTPRequestOptions:
 
         if self.timeout is not None and self.timeout <= 0:
             raise ValueError("timeout must be a positive number")
+
+        if self.headers is not None:
+            self.headers = Headers(dict(self.headers))
+
+        self.params = dict(self.params) if self.params is not None else None
+        self.cookies = dict(self.cookies) if self.cookies is not None else None
 
     def dump(
         self, exclude_none: bool = False, convert_cookies_to_dict: bool = False
@@ -95,10 +104,10 @@ class HTTPRequestConfig:
         if not isinstance(self.options, HTTPRequestOptions):
             raise TypeError("options must be of type HTTPRequestOptions")
 
-        if getattr(self.__class__, "_no_internal_ip", False):
+        if not getattr(self.__class__, "_allow_internal", False):
             if self.allow_internal:
                 raise ValueError(
-                    "Internal access is disabled by `force_no_internal()` and cannot be enabled"
+                    "Internal IP access is disabled. Use HTTPRequestConfig.allow_internal_access() to enable it explicitly."
                 )
             self.allow_internal = False
 
@@ -143,8 +152,8 @@ class HTTPRequestConfig:
                 raise TypeError(f"{method_upper} request expects params to be a dict")
 
     @classmethod
-    def force_no_internal(cls) -> None:
-        cls._no_internal_ip = True
+    def allow_internal_access(cls) -> None:
+        cls._allow_internal = True
 
 
 class SyncHTTPRequest(Protocol):

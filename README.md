@@ -101,27 +101,20 @@ To prevent accidental requests to internal or private IP addresses (e.g. `127.0.
 ```python
 from http_wrap.request import HTTPRequestConfig, HTTPRequestOptions
 
-# This will raise an error unless allow_internal=True
+# This will raise an error unless internal access is explicitly allowed
+HTTPRequestConfig.allow_internal_access()  # Enable internal access globally
+
 config = HTTPRequestConfig(
     method="GET",
     url="http://localhost",
     options=HTTPRequestOptions(),
-    allow_internal=True  # Only set this if you're sure you want to allow internal requests
+    allow_internal=True  # Must still be set per-request
 )
 ```
 
-### Enforcing Global Ban on Internal IPs
+### Keeping Internal Access Disabled by Default
 
-To globally block internal IPs, regardless of the `allow_internal` flag:
-
-```python
-from http_wrap.request import HTTPRequestConfig
-
-HTTPRequestConfig.force_no_internal()
-```
-
-This disables internal requests **even if** `allow_internal=True` is passed.
-
+If `HTTPRequestConfig.allow_internal_access()` is **not** called, any attempt to access internal addresses—even with `allow_internal=True`—will raise an error. This ensures security out of the box.
 ---
 
 ## License

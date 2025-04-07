@@ -3,8 +3,8 @@ from urllib.parse import urlencode
 import httpx
 import pytest
 
+from http_wrap import HTTPRequestConfig, HTTPRequestOptions
 from http_wrap.sync_adapters import HttpxAdapter
-from src.http_wrap import HTTPRequestConfig, HTTPRequestOptions
 
 
 # Fixture para o client
