@@ -5,6 +5,8 @@ from dataclasses import dataclass, field
 from typing import Any, Iterator
 from urllib.parse import urlparse
 
+from http_wrap.settings import get_settings
+
 INTERNAL_DOMAINS = (".local", ".internal", ".lan")
 
 
@@ -33,7 +35,7 @@ SENSITIVE_HEADERS = {"authorization", "cookie", "x-api-key"}
 class Headers(Mapping):
     _headers: dict[str, str] = field(default_factory=dict)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self._headers = {k.lower(): str(v) for k, v in self._headers.items()}
 
     def __getitem__(self, key: str) -> str:
@@ -49,7 +51,12 @@ class Headers(Mapping):
         return isinstance(key, str) and key.lower() in self._headers
 
     def get(self, key: str, default: Any = None) -> Any:
-        return self._headers.get(key.lower(), default)
+        settings = get_settings()
+        redact_keys = {h.lower() for h in settings.redact_headers}
+        k = key.lower()
+        if k in redact_keys:
+            return "<redacted>"
+        return self._headers.get(k, default)
 
     def items(self):
         return self._headers.items()
@@ -65,9 +72,10 @@ class Headers(Mapping):
         return self._headers.copy()
 
     def safe_repr(self) -> dict[str, str]:
+        settings = get_settings()
+        redact_keys = {h.lower() for h in settings.redact_headers}
         return {
-            k: ("<redacted>" if k in SENSITIVE_HEADERS else v)
-            for k, v in self._headers.items()
+            k: "<redacted>" if k in redact_keys else v for k, v in self._headers.items()
         }
 
     def __str__(self) -> str:

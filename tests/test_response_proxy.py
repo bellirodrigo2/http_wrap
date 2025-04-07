@@ -1,4 +1,3 @@
-from collections.abc import Mapping
 from datetime import timedelta
 
 import httpx
@@ -10,6 +9,7 @@ from aioresponses import aioresponses
 from http_wrap.async_adapters.aiohttp import make_response
 from http_wrap.response import ResponseInterface, ResponseProxy
 from http_wrap.security import Headers
+from http_wrap.settings import configure
 
 
 @responses.activate
@@ -105,3 +105,25 @@ def test_response_proxy_with_httpx(httpx_mock):
     assert isinstance(proxy.encoding, str)
     assert isinstance(proxy.elapsed, timedelta)
     assert isinstance(proxy.history, list)
+
+
+def test_custom_redact_headers(httpx_mock):
+    # Configure custom headers for redaction
+    configure(redact_headers=["X-Custom-Header"])
+
+    httpx_mock.add_response(
+        method="GET",
+        url="https://example.com",
+        json={"message": "ok"},
+        headers={
+            "X-Custom-Header": "sensitive-value",
+            "Authorization": "should-not-be-redacted",
+        },
+    )
+
+    resp = httpx.get("https://example.com")
+    proxy = ResponseProxy(resp)
+
+    # X-Custom-Header should be redacted, while Authorization remains intact if not configured to redact
+    assert "<redacted>" in str(proxy.headers.get("x-custom-header"))
+    assert proxy.headers.get("authorization") == "should-not-be-redacted"

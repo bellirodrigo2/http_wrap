@@ -19,6 +19,9 @@ class HttpLibSettings:
     trusted_domains: List[str] = field(
         default_factory=list
     )  # Domains allowed for redirection
+    redact_headers: List[str] = field(
+        default_factory=lambda: ["Authorization", "Proxy-Authorization"]
+    )  # Headers to be sanitized
 
 
 # Internal singleton instance
@@ -38,7 +41,8 @@ def configure(
     allow_internal_access: Optional[bool] = None,
     redirect_enabled: Optional[bool] = None,
     allow_cross_domain: Optional[bool] = None,
-    trusted_domains: Optional[List[str]] = None
+    trusted_domains: Optional[List[str]] = None,
+    redact_headers: Optional[List[str]] = None,
 ) -> None:
     """
     Updates global settings for the library.
@@ -61,6 +65,8 @@ def configure(
         _settings.allow_cross_domain = allow_cross_domain
     if trusted_domains is not None:
         _settings.trusted_domains = trusted_domains
+    if redact_headers is not None:
+        _settings.redact_headers = redact_headers
 
 
 def reset_settings() -> None:

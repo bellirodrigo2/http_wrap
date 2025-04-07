@@ -6,6 +6,7 @@ from .request import (
 )
 from .response import ResponseInterface
 from .security import RedirectPolicy
+from .settings import configure, get_settings, reset_settings
 
 __all__ = [
     "HTTPRequestConfig",
@@ -14,4 +15,7 @@ __all__ = [
     "AsyncHTTPRequest",
     "ResponseInterface",
     "RedirectPolicy",
+    "configure",
+    "get_settings",
+    "reset_settings",
 ]
