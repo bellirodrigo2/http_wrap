@@ -1,7 +1,9 @@
 from collections.abc import AsyncGenerator, Iterable, Mapping
 from dataclasses import asdict, dataclass, field
 from typing import Any, Literal, Optional, Protocol, Union, cast, get_args
+from urllib.parse import urlparse
 
+from http_wrap.security import is_internal_address
 from src.http_wrap.response import ResponseInterface
 
 httpmethod = Literal["get", "post", "put", "patch", "delete", "head"]
@@ -38,6 +40,9 @@ class HTTPRequestOptions:
                 if not all(isinstance(k, str) for k in val.keys()):
                     raise TypeError(f"All keys in {attr_name} must be strings")
 
+        if self.timeout is None and hasattr(self.__class__, "_default_timeout"):
+            self.timeout = self.__class__._default_timeout
+
         if self.timeout is not None and self.timeout <= 0:
             raise ValueError("timeout must be a positive number")
 
@@ -63,7 +68,7 @@ class HTTPRequestOptions:
         return cls(**data)
 
     @classmethod
-    def make_default_timeout(cls, value: float) -> None:
+    def force_default_timeout(cls, value: float) -> None:
         if value <= 0:
             raise ValueError("default timeout must be positive")
         cls._default_timeout = value
@@ -74,10 +79,14 @@ class HTTPRequestConfig:
     method: str
     url: str
     options: HTTPRequestOptions = field(default_factory=HTTPRequestOptions)
+    allow_internal: bool = False
 
     def __post_init__(self) -> None:
         if not isinstance(self.url, str) or not self.url:
             raise ValueError("url must be a non-empty string")
+
+        if not isinstance(self.method, str) or not self.method:
+            raise ValueError("method must be a non-empty string")
 
         self.method = self.method.lower()
         if self.method not in ALLOWED_METHODS:
@@ -86,15 +95,38 @@ class HTTPRequestConfig:
         if not isinstance(self.options, HTTPRequestOptions):
             raise TypeError("options must be of type HTTPRequestOptions")
 
-        self.validate()
+        if getattr(self.__class__, "_no_internal_ip", False):
+            if self.allow_internal:
+                raise ValueError(
+                    "Internal access is disabled by `force_no_internal()` and cannot be enabled"
+                )
+            self.allow_internal = False
 
         if self.options.allow_redirects is None:
             self.options.allow_redirects = self.method in METHODS_WITH_REDIRECTS
+
+        self.validate()
+
+    def _validate_url(self, allowed_schemes: set[str] = {"http", "https"}) -> None:
+        parsed = urlparse(self.url)
+
+        if not parsed.scheme or parsed.scheme not in allowed_schemes:
+            raise ValueError(f"Invalid URL scheme: {parsed.scheme}")
+
+        if not parsed.netloc:
+            raise ValueError("URL must have a valid hostname")
+
+        if not self.allow_internal and is_internal_address(parsed.hostname):
+            raise ValueError(
+                f"Internal address '{parsed.hostname}' is not allowed (set allow_internal=True to bypass)"
+            )
 
     def validate(self) -> None:
         has_body = self.method in METHODS_WITH_BODY
         has_params = self.method in METHODS_WITH_PARAMS
         method_upper = self.method.upper()
+
+        self._validate_url()
 
         if has_body and self.options.json is None:
             raise ValueError(
@@ -109,6 +141,10 @@ class HTTPRequestConfig:
         if has_params and self.options.params is not None:
             if not isinstance(self.options.params, dict):
                 raise TypeError(f"{method_upper} request expects params to be a dict")
+
+    @classmethod
+    def force_no_internal(cls) -> None:
+        cls._no_internal_ip = True
 
 
 class SyncHTTPRequest(Protocol):

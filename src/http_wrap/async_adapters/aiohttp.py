@@ -105,17 +105,15 @@ class AioHttpAdapter(AsyncHTTPRequest):
         if not self.session or self.session.closed:
             await self.init_session()
 
-        timeout = (
-            aiohttp.ClientTimeout(total=config.options.timeout)
-            if config.options.timeout is not None
-            else None
-        )
-
         request_kwargs = config.options.dump(
             exclude_none=True, convert_cookies_to_dict=True
         )
 
-        del request_kwargs["verify"]
+        request_kwargs.pop("verify", None)
+
+        request_kwargs["timeout"] = config.options.timeout or aiohttp.ClientTimeout(
+            total=config.options.timeout
+        )
 
         async with self.session.request(
             method=config.method, url=config.url, **request_kwargs

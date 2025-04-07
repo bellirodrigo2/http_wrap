@@ -21,9 +21,8 @@ class HttpxAdapter(SyncHTTPRequest):
             exclude_none=True, convert_cookies_to_dict=True
         )
 
-        request_kwargs["follow_redirects"] = request_kwargs["allow_redirects"]
-        del request_kwargs["allow_redirects"]
-        del request_kwargs["verify"]
+        request_kwargs["follow_redirects"] = request_kwargs.pop("allow_redirects", True)
+        request_kwargs.pop("verify", None)
 
         response = self.session.request(
             method=config.method, url=config.url, **request_kwargs

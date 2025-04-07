@@ -3,11 +3,17 @@ import pytest
 from src.http_wrap import HTTPRequestConfig, HTTPRequestOptions
 
 
-def test_valid_get_with_params():
+@pytest.fixture
+def default_options():
+    return HTTPRequestOptions(params={"q": "test"})
+
+
+@pytest.mark.parametrize("method", ["GET", "get"])
+def test_valid_get_with_params(method, default_options):
     config = HTTPRequestConfig(
-        method="GET",
+        method=method,
         url="https://example.com",
-        options=HTTPRequestOptions(params={"q": "test"}),
+        options=default_options,
     )
     assert config.method == "get"
     assert config.options.params["q"] == "test"
@@ -36,14 +42,17 @@ def test_invalid_body_with_get_delete_head(method):
 def test_post_put_patch_without_body_should_fail(method):
     with pytest.raises(ValueError, match=f"{method} request requires a body"):
         HTTPRequestConfig(
-            method=method, url="https://example.com", options=HTTPRequestOptions()
+            method=method,
+            url="https://example.com",
+            options=HTTPRequestOptions(),
         )
 
 
-def test_invalid_url_type():
-    with pytest.raises(ValueError, match="url must be a non-empty string"):
+@pytest.mark.parametrize("url", ["", None, "ftp://invalid.com", "invalid-url"])
+def test_invalid_url_inputs(url):
+    with pytest.raises((ValueError, TypeError)):
         HTTPRequestConfig(
-            method="GET", url="", options=HTTPRequestOptions(params={"ok": "yep"})
+            method="GET", url=url, options=HTTPRequestOptions(params={"ok": "yep"})
         )
 
 
@@ -61,3 +70,26 @@ def test_invalid_params_type():
             url="https://example.com",
             options=HTTPRequestOptions(params="wrong-type"),  # should be dict
         )
+
+
+@pytest.mark.parametrize(
+    "url", ["http://127.0.0.1", "http://localhost", "http://192.168.1.1"]
+)
+def test_block_internal_ip_by_default(url):
+    with pytest.raises(ValueError, match="Internal address '.*' is not allowed"):
+        HTTPRequestConfig(
+            method="GET", url=url, options=HTTPRequestOptions(params={"x": "1"})
+        )
+
+
+@pytest.mark.parametrize(
+    "url", ["http://127.0.0.1", "http://localhost", "http://192.168.1.1"]
+)
+def test_allow_internal_ip_if_flag_set(url):
+    config = HTTPRequestConfig(
+        method="GET",
+        url=url,
+        options=HTTPRequestOptions(params={"x": "1"}),
+        allow_internal=True,
+    )
+    assert config.url == url
