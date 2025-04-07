@@ -5,8 +5,7 @@ from .request import (
     SyncHTTPRequest,
 )
 from .response import ResponseInterface
-
-# from .security import Headers
+from .security import RedirectPolicy
 
 __all__ = [
     "HTTPRequestConfig",
@@ -14,5 +13,5 @@ __all__ = [
     "SyncHTTPRequest",
     "AsyncHTTPRequest",
     "ResponseInterface",
-    # "Headers",
+    "RedirectPolicy",
 ]

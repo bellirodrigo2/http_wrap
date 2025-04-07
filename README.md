@@ -21,6 +21,8 @@ The goal is to enable clean and flexible usage across projects, while supporting
 - ✅ Easy mocking for testing using `responses` and `aioresponses`
 - ✅ Built-in protection against requests to internal/private IPs (optional)
 - ✅ Global timeout configuration via factory method
+- ✅ Redaction of sensitive headers (e.g. Authorization)
+- ✅ Configurable redirect policy via `RedirectPolicy`
 
 ## Installation
 
@@ -115,9 +117,27 @@ config = HTTPRequestConfig(
 ### Keeping Internal Access Disabled by Default
 
 If `HTTPRequestConfig.allow_internal_access()` is **not** called, any attempt to access internal addresses—even with `allow_internal=True`—will raise an error. This ensures security out of the box.
+
+---
+
+### Configurable Redirect Policy
+
+You can configure global redirect behavior using `RedirectPolicy`:
+
+```python
+from http_wrap.security import RedirectPolicy
+
+RedirectPolicy.set_redirect_policy(
+    enabled=True,  # Enable redirect filtering
+    allow_cross_domain=False,  # Disallow redirects to a different domain
+    trusted_domains=["example.com"]  # Allow redirects only to these domains
+)
+```
+
+This applies to all clients that respect `RedirectPolicy`. Note that `HTTPRequestOptions.allow_redirects` controls redirect behavior per request (e.g., enable or disable following redirects entirely).
+
 ---
 
 ## License
 
 MIT
-

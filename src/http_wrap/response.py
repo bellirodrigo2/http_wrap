@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Any, Protocol, runtime_checkable
 
-from http_wrap.security import Headers
+from http_wrap.security import Headers, RedirectPolicy
 
 
 @runtime_checkable
@@ -35,6 +35,20 @@ class ResponseInterface(Protocol):
 @dataclass
 class ResponseProxy(ResponseInterface):
     _response: Any = field(repr=False)
+
+    def __post_init__(self):
+        if not RedirectPolicy.is_enabled():
+            return  # skip check if disabled
+
+        original_url = (
+            self._response.history[0].url
+            if self._response.history
+            else self._response.url
+        )
+        redirect_chain = [r.url for r in self._response.history] + [self._response.url]
+
+        if not RedirectPolicy.is_safe(original_url, redirect_chain):
+            raise ValueError(f"Insecure redirect detected: {redirect_chain}")
 
     @property
     def status_code(self) -> int:
