@@ -1,10 +1,16 @@
 from collections.abc import AsyncGenerator, Iterable, Mapping
 from dataclasses import dataclass, field
-from typing import Any, Literal, Optional, Protocol, Union, cast
+from typing import Any, Literal, Optional, Protocol, Union, cast, get_args
 
 from src.http_wrap.response import ResponseInterface
 
-httpmethod = Literal["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"]
+httpmethod = Literal["get", "post", "put", "patch", "delete", "head"]
+
+ALLOWED_METHODS = set(get_args(httpmethod))
+
+METHODS_WITH_BODY = {"post", "put", "patch"}
+METHODS_WITH_PARAMS = {"get", "delete", "head"}
+METHODS_WITH_REDIRECTS = {"get", "options"}
 
 
 @dataclass
@@ -18,7 +24,7 @@ class HTTPRequestOptions:
     cookies: Optional[Mapping[str, str]] = None
 
     def __post_init__(self) -> None:
-        if self.body is not None and not isinstance(self.body, dict):  # type: ignore # test espera dict
+        if self.body is not None and not isinstance(self.body, dict):
             raise TypeError("body must be a mapping")
 
         for attr_name in ("headers", "params", "cookies"):
@@ -34,12 +40,9 @@ class HTTPRequestOptions:
 
         if self.timeout is not None and self.timeout <= 0:
             raise ValueError("timeout must be a positive number")
-        # if self.allow_redirects is not None:
-        # warnings.warn("Check if the HTTP method supports 'allow_redirects' (e.g., aiohttp HEAD does not)")
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "HTTPRequestOptions":
-        """Creates an HTTPRequestOptions instance from a dictionary, validating keys."""
         known_fields = {f.name for f in cls.__dataclass_fields__.values()}
         unknown_keys = set(data) - known_fields
         if unknown_keys:
@@ -49,38 +52,44 @@ class HTTPRequestOptions:
 
 @dataclass
 class HTTPRequestConfig:
-    method: httpmethod
+    method: str
     url: str
     options: HTTPRequestOptions = field(default_factory=HTTPRequestOptions)
 
     def __post_init__(self) -> None:
-        if not isinstance(self.url, str) or not self.url:  # type: ignore
+        if not isinstance(self.url, str) or not self.url:
             raise ValueError("url must be a non-empty string")
 
-        if not isinstance(self.options, HTTPRequestOptions):  # type: ignore
+        self.method = self.method.lower()
+        if self.method not in ALLOWED_METHODS:
+            raise ValueError(f"Unsupported HTTP method: {self.method}")
+
+        if not isinstance(self.options, HTTPRequestOptions):
             raise TypeError("options must be of type HTTPRequestOptions")
 
         self.validate()
 
+        if self.options.allow_redirects is None:
+            self.options.allow_redirects = self.method in {"get", "options"}
+
     def validate(self) -> None:
-        method = self.method.upper()
-        has_body = method in {"POST", "PUT", "PATCH"}
-        has_params = method in {"GET", "DELETE", "HEAD"}
+        has_body = self.method in {"post", "put", "patch"}
+        has_params = self.method in {"get", "delete", "head"}
+        method_upper = self.method.upper()
 
         if has_body and self.options.body is None:
-            raise ValueError(f"{method} request requires a body in `options.body`")
+            raise ValueError(
+                f"{method_upper} request requires a body in `options.body`"
+            )
 
         if not has_body and self.options.body is not None:
             raise ValueError(
-                f"{method} request does not support a body (use `params` if needed)"
+                f"{method_upper} request does not support a body (use `params` if needed)"
             )
 
         if has_params and self.options.params is not None:
             if not isinstance(self.options.params, dict):
-                raise TypeError(f"{method} request expects params to be a dict")
-
-        if method not in {"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"}:
-            raise ValueError(f"Unsupported HTTP method: {method}")
+                raise TypeError(f"{method_upper} request expects params to be a dict")
 
 
 class SyncHTTPRequest(Protocol):

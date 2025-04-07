@@ -9,7 +9,7 @@ def test_valid_get_with_params():
         url="https://example.com",
         options=HTTPRequestOptions(params={"q": "test"}),
     )
-    assert config.method == "GET"
+    assert config.method == "get"
     assert config.options.params["q"] == "test"
 
 
