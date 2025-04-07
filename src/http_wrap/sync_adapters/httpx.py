@@ -1,29 +1,34 @@
 from dataclasses import dataclass, field
-from http_wrap.request import HTTPRequestConfig, HTTPRequestOptions, SyncHTTPRequest
-from http_wrap.response import ResponseInterface
-import httpx
 from typing import Iterable
+
+import httpx
+
+from http_wrap.request import HTTPRequestConfig, SyncHTTPRequest
+from http_wrap.response import ResponseInterface
+
 
 @dataclass
 class HttpxAdapter(SyncHTTPRequest):
-    client: httpx.Client = field(default_factory=httpx.Client)
+    session: httpx.Client = field(default_factory=httpx.Client)
 
     def request(self, config: HTTPRequestConfig):
 
         config.validate()
 
-        self.client.verify = config.options.verify_ssl if config.options.verify_ssl is not None else True
+        self.session.verify = config.options.verify
 
-        response = self.client.request(
-            method=config.method.lower(),
-            url=config.url,
-            headers=config.options.headers,
-            params=config.options.params,
-            json=config.options.body,
-            timeout=config.options.timeout,
-            follow_redirects=config.options.allow_redirects,
-            cookies=config.options.cookies
+        request_kwargs = config.options.dump(
+            exclude_none=True, convert_cookies_to_dict=True
         )
+
+        request_kwargs["follow_redirects"] = request_kwargs["allow_redirects"]
+        del request_kwargs["allow_redirects"]
+        del request_kwargs["verify"]
+
+        response = self.session.request(
+            method=config.method, url=config.url, **request_kwargs
+        )
+
         return response
 
     def requests(

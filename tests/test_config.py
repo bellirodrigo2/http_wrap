@@ -17,9 +17,9 @@ def test_valid_post_with_body():
     config = HTTPRequestConfig(
         method="POST",
         url="https://example.com",
-        options=HTTPRequestOptions(body={"key": "value"}),
+        options=HTTPRequestOptions(json={"key": "value"}),
     )
-    assert config.options.body["key"] == "value"
+    assert config.options.json["key"] == "value"
 
 
 @pytest.mark.parametrize("method", ["GET", "DELETE", "HEAD"])
@@ -28,7 +28,7 @@ def test_invalid_body_with_get_delete_head(method):
         HTTPRequestConfig(
             method=method,
             url="https://example.com",
-            options=HTTPRequestOptions(body={"invalid": "data"}),
+            options=HTTPRequestOptions(json={"invalid": "data"}),
         )
 
 

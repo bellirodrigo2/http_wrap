@@ -3,7 +3,7 @@ from typing import Iterable
 
 import requests
 
-from src.http_wrap.request import HTTPRequestConfig, HTTPRequestOptions, SyncHTTPRequest
+from src.http_wrap.request import HTTPRequestConfig, SyncHTTPRequest
 from src.http_wrap.response import ResponseInterface
 
 
@@ -12,22 +12,15 @@ class RequestsAdapter(SyncHTTPRequest):
     session: requests.Session = field(default_factory=requests.Session)
 
     def request(self, config: HTTPRequestConfig) -> ResponseInterface:
-        config.validate()  # Validações específicas (método + opções)
 
-        method = config.method.lower()
-        url = config.url
-        opts = config.options or HTTPRequestOptions()
+        config.validate()
+
+        request_kwargs = config.options.dump(
+            exclude_none=True, convert_cookies_to_dict=True
+        )
 
         response = self.session.request(
-            method=method,
-            url=url,
-            headers=opts.headers,
-            params=opts.params,
-            json=opts.body,
-            timeout=opts.timeout,
-            allow_redirects=opts.allow_redirects,
-            verify=opts.verify_ssl if opts.verify_ssl is not None else True,
-            cookies=dict(opts.cookies) if opts.cookies else None,
+            method=config.method, url=config.url, **request_kwargs
         )
         return response
 

@@ -1,5 +1,5 @@
 from collections.abc import AsyncGenerator, Iterable, Mapping
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from typing import Any, Literal, Optional, Protocol, Union, cast, get_args
 
 from src.http_wrap.response import ResponseInterface
@@ -17,14 +17,14 @@ METHODS_WITH_REDIRECTS = {"get", "options"}
 class HTTPRequestOptions:
     headers: Optional[Mapping[str, str]] = None
     params: Optional[Mapping[str, str]] = None
-    body: Optional[dict[str, Any]] = None
+    json: Optional[dict[str, Any]] = None
     timeout: Optional[float] = None
     allow_redirects: Optional[bool] = None
-    verify_ssl: bool = True
+    verify: bool = True
     cookies: Optional[Mapping[str, str]] = None
 
     def __post_init__(self) -> None:
-        if self.body is not None and not isinstance(self.body, dict):
+        if self.json is not None and not isinstance(self.json, dict):
             raise TypeError("body must be a mapping")
 
         for attr_name in ("headers", "params", "cookies"):
@@ -41,6 +41,19 @@ class HTTPRequestOptions:
         if self.timeout is not None and self.timeout <= 0:
             raise ValueError("timeout must be a positive number")
 
+    def dump(
+        self, exclude_none: bool = False, convert_cookies_to_dict: bool = False
+    ) -> dict[str, Any]:
+        data = asdict(self)
+
+        if convert_cookies_to_dict and data.get("cookies") is not None:
+            data["cookies"] = dict(data["cookies"])
+
+        if exclude_none:
+            data = {k: v for k, v in data.items() if v is not None}
+
+        return data
+
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "HTTPRequestOptions":
         known_fields = {f.name for f in cls.__dataclass_fields__.values()}
@@ -48,6 +61,12 @@ class HTTPRequestOptions:
         if unknown_keys:
             raise ValueError(f"Unknown option keys: {unknown_keys}")
         return cls(**data)
+
+    @classmethod
+    def make_default_timeout(cls, value: float) -> None:
+        if value <= 0:
+            raise ValueError("default timeout must be positive")
+        cls._default_timeout = value
 
 
 @dataclass
@@ -70,19 +89,19 @@ class HTTPRequestConfig:
         self.validate()
 
         if self.options.allow_redirects is None:
-            self.options.allow_redirects = self.method in {"get", "options"}
+            self.options.allow_redirects = self.method in METHODS_WITH_REDIRECTS
 
     def validate(self) -> None:
-        has_body = self.method in {"post", "put", "patch"}
-        has_params = self.method in {"get", "delete", "head"}
+        has_body = self.method in METHODS_WITH_BODY
+        has_params = self.method in METHODS_WITH_PARAMS
         method_upper = self.method.upper()
 
-        if has_body and self.options.body is None:
+        if has_body and self.options.json is None:
             raise ValueError(
-                f"{method_upper} request requires a body in `options.body`"
+                f"{method_upper} request requires a body in `options.json`"
             )
 
-        if not has_body and self.options.body is not None:
+        if not has_body and self.options.json is not None:
             raise ValueError(
                 f"{method_upper} request does not support a body (use `params` if needed)"
             )

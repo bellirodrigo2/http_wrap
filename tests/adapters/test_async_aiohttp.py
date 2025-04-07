@@ -21,7 +21,7 @@ def make_config(
     method: str, url: str, payload=None, params=None, headers=None
 ) -> HTTPRequestConfig:
     options = HTTPRequestOptions(
-        body=payload, params=params or {}, headers=headers or {}
+        json=payload, params=params or {}, headers=headers or {}
     )
     return HTTPRequestConfig(method=method, url=url, options=options)
 

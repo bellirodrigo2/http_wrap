@@ -18,7 +18,7 @@ def client():
     [
         # GET com params: a URL final incluirá a query string.
         (
-            "GET",
+            "get",
             "https://example.com/api",
             HTTPRequestOptions(params={"q": "test"}),
             200,
@@ -26,37 +26,37 @@ def client():
         ),
         # POST com body
         (
-            "POST",
+            "post",
             "https://example.com/api",
-            HTTPRequestOptions(body={"key": "val"}),
+            HTTPRequestOptions(json={"key": "val"}),
             200,
             "ok",
         ),
         # PUT com body
         (
-            "PUT",
+            "put",
             "https://example.com/api",
-            HTTPRequestOptions(body={"update": True}),
+            HTTPRequestOptions(json={"update": True}),
             200,
             "ok",
         ),
         # PATCH com body
         (
-            "PATCH",
+            "patch",
             "https://example.com/api",
-            HTTPRequestOptions(body={"patch": "val"}),
+            HTTPRequestOptions(json={"patch": "val"}),
             200,
             "ok",
         ),
         # DELETE sem body
-        ("DELETE", "https://example.com/api", HTTPRequestOptions(), 200, "ok"),
+        ("delete", "https://example.com/api", HTTPRequestOptions(), 200, "ok"),
         # HEAD sem corpo: espera retorno vazio
-        ("HEAD", "https://example.com/api", HTTPRequestOptions(), 200, ""),
+        ("head", "https://example.com/api", HTTPRequestOptions(), 200, ""),
         # POST com body, mas simulando erro (400)
         (
-            "POST",
+            "post",
             "https://example.com/api",
-            HTTPRequestOptions(body={"invalid": True}),
+            HTTPRequestOptions(json={"invalid": True}),
             400,
             "bad request",
         ),
@@ -72,18 +72,18 @@ def test_sync_http_methods(
         full_url = f"{url}?{urlencode(options.params)}"
 
     # Para HEAD, não se define body, pois não deve haver conteúdo.
-    if method.upper() == "HEAD":
+    if method == "head":
         responses.add(
-            method=method,
+            method=method.upper(),
             url=full_url,
             status=expected_status,
             content_type="application/json",
         )
     else:
         responses.add(
-            method=method,
+            method=method.upper(),
             url=full_url,
-            body=expected_response_text,
+            json=expected_response_text,
             status=expected_status,
             content_type="application/json",
         )
@@ -96,10 +96,8 @@ def test_sync_http_methods(
     assert response.status_code == expected_status
 
     # Se não for HEAD, verifica o conteúdo (text)
-    if method.upper() != "HEAD":
-        assert response.text == expected_response_text
-    else:
-        assert response.text == ""
+    if method != "head":
+        assert response.json() == expected_response_text
 
     # Verifica que a URL retornada inclui a query string se houver params.
     assert response.url == full_url

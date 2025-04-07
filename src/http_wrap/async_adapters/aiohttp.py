@@ -85,21 +85,20 @@ class AioHttpAdapter(AsyncHTTPRequest):
         if not self.session or self.session.closed:
             connector = aiohttp.TCPConnector(ssl=self.verify_ssl)
             self.session = aiohttp.ClientSession(connector=connector)
-    
+
     async def close_session(self) -> None:
         if self.session and not self.session.closed:
             await self.session.close()
             self.session = None
 
     async def request(self, config: HTTPRequestConfig) -> ResponseInterface:
-        method = config.method.lower()
-        url = config.url
-        opts: HTTPRequestOptions = config.options or HTTPRequestOptions()
 
-        if opts.verify_ssl != self.verify_ssl:
+        config.validate()
+
+        if config.options.verify != self.verify_ssl:
             await self.close_session()
-            
-            self.verify_ssl = opts.verify_ssl
+
+            self.verify_ssl = config.options.verify
             connector = aiohttp.TCPConnector(ssl=self.verify_ssl)
             self.session = aiohttp.ClientSession(connector=connector)
 
@@ -107,21 +106,19 @@ class AioHttpAdapter(AsyncHTTPRequest):
             await self.init_session()
 
         timeout = (
-            aiohttp.ClientTimeout(total=opts.timeout)
-            if opts.timeout is not None
+            aiohttp.ClientTimeout(total=config.options.timeout)
+            if config.options.timeout is not None
             else None
         )
 
+        request_kwargs = config.options.dump(
+            exclude_none=True, convert_cookies_to_dict=True
+        )
+
+        del request_kwargs["verify"]
+
         async with self.session.request(
-            method,
-            url,
-            headers=opts.headers,
-            params=opts.params,
-            json=opts.body,
-            timeout=timeout,
-            allow_redirects=opts.allow_redirects,
-            # verify=opts.verify_ssl if opts.verify_ssl is not None else True,
-            cookies=dict(opts.cookies) if opts.cookies else None,
+            method=config.method, url=config.url, **request_kwargs
         ) as resp:
             return await make_response(resp)
 
