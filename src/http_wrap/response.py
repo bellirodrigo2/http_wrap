@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Any, Protocol, runtime_checkable
 
-from http_wrap.security import Headers, RedirectPolicy
+from http_wrap.security import Headers, RedirectPolicy, make_headers
 
 
 @runtime_checkable
@@ -69,6 +69,7 @@ class ResponseProxy(ResponseInterface):
     @property
     def headers(self) -> Headers:
         return Headers(dict(self._response.headers))
+        # return make_headers(dict(self._response.headers))
 
     @property
     def cookies(self) -> Mapping[str, str]:
