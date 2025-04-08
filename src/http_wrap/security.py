@@ -31,6 +31,28 @@ def is_internal_address(host: str) -> bool:
 SENSITIVE_HEADERS = {"authorization", "cookie", "x-api-key"}
 
 
+def is_redacted(header_name: str) -> bool:
+    name = header_name.lower()
+    settings = get_settings()
+
+    if name in (h.lower() for h in settings.redact_headers):
+        return True
+
+    if any(
+        name.startswith(p.lower())
+        for p in getattr(settings, "redact_headers_startswith", [])
+    ):
+        return True
+
+    if any(
+        name.endswith(s.lower())
+        for s in getattr(settings, "redact_headers_endswith", [])
+    ):
+        return True
+
+    return False
+
+
 @dataclass
 class Headers(Mapping):
     _headers: dict[str, str] = field(default_factory=dict)
@@ -51,10 +73,8 @@ class Headers(Mapping):
         return isinstance(key, str) and key.lower() in self._headers
 
     def get(self, key: str, default: Any = None) -> Any:
-        settings = get_settings()
-        redact_keys = {h.lower() for h in settings.redact_headers}
         k = key.lower()
-        if k in redact_keys:
+        if is_redacted(k):
             return "<redacted>"
         return self._headers.get(k, default)
 
@@ -72,10 +92,8 @@ class Headers(Mapping):
         return self._headers.copy()
 
     def safe_repr(self) -> dict[str, str]:
-        settings = get_settings()
-        redact_keys = {h.lower() for h in settings.redact_headers}
         return {
-            k: "<redacted>" if k in redact_keys else v for k, v in self._headers.items()
+            k: "<redacted>" if is_redacted(k) else v for k, v in self._headers.items()
         }
 
     def __str__(self) -> str:
