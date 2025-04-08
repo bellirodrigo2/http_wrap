@@ -1,30 +1,21 @@
+from collections.abc import Callable
+from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import Iterable
+from typing import ContextManager
 
 import requests
 
-from http_wrap.request import HTTPRequestConfig, SyncHTTPRequest
-from http_wrap.response import ResponseInterface, ResponseProxy
+from http_wrap.sync_adapters.basesync import SyncAdapter, SyncHttpSession
+
+
+@contextmanager
+def requests_session_factory():
+    with requests.Session() as session:
+        yield session
 
 
 @dataclass
-class RequestsAdapter(SyncHTTPRequest):
-    session: requests.Session = field(default_factory=requests.Session)
-
-    def request(self, config: HTTPRequestConfig) -> ResponseInterface:
-        config.validate()
-
-        request_kwargs = config.options.dump(
-            exclude_none=True, convert_cookies_to_dict=True
-        )
-
-        response = self.session.request(
-            method=config.method, url=config.url, **request_kwargs
-        )
-        return ResponseProxy(response)
-
-    def requests(
-        self, configs: list[HTTPRequestConfig], max: int = 1
-    ) -> Iterable[ResponseInterface]:
-        for config in configs:
-            yield self.request(config)
+class RequestsAdapter(SyncAdapter):
+    make_session: Callable[[], ContextManager[SyncHttpSession]] = (
+        requests_session_factory
+    )

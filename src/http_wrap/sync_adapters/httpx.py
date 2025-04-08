@@ -1,45 +1,36 @@
+from collections.abc import Callable
+from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Iterable, Optional
+from typing import Any, ContextManager
 
 import httpx
 
-from http_wrap.request import HTTPRequestConfig, SyncHTTPRequest
+from http_wrap.request import HTTPRequestConfig
 from http_wrap.response import ResponseInterface, ResponseProxy
+from http_wrap.sync_adapters.basesync import SyncAdapter, SyncHttpSession
+
+
+@contextmanager
+def httpx_sync_session_factory(verify: bool):
+    with httpx.Client(verify=verify) as session:
+        yield session
 
 
 @dataclass
-class HttpxAdapter(SyncHTTPRequest):
-    session: Optional[httpx.Client] = None
-    verify_ssl: bool = True
+class HttpxAdapter(SyncAdapter):
+    make_session: Callable[..., ContextManager[SyncHttpSession]] = (
+        httpx_sync_session_factory
+    )
 
-    def __post_init__(self) -> None:
-        if not self.session or getattr(self.session, "closed", True):
-            self.session = httpx.Client(verify=self.verify_ssl)
+    def _make_args(self, config: HTTPRequestConfig) -> tuple[str, str, dict[str, Any]]:
+        method, url, options = super()._make_args(config)
+        options["follow_redirects"] = options.pop("allow_redirects", True)
+        options.pop("verify", None)
+        return method, url, options
 
     def request(self, config: HTTPRequestConfig) -> ResponseInterface:
-        config.validate()
+        method, url, options = self._make_args(config)
+        with self.make_session(verify=config.options.verify) as session:
 
-        if config.options.verify != self.verify_ssl:
-            if self.session and not getattr(self.session, "closed", True):
-                self.session.close()
-            self.session = httpx.Client(verify=config.options.verify)
-            self.verify_ssl = config.options.verify
-
-        request_kwargs = config.options.dump(
-            exclude_none=True, convert_cookies_to_dict=True
-        )
-
-        request_kwargs["follow_redirects"] = request_kwargs.pop("allow_redirects", True)
-        request_kwargs.pop("verify", None)
-
-        response = self.session.request(
-            method=config.method, url=config.url, **request_kwargs
-        )  # type: ignore
-
-        return ResponseProxy(response)
-
-    def requests(
-        self, configs: list[HTTPRequestConfig], max: int = 1
-    ) -> Iterable[ResponseInterface]:
-        for config in configs:
-            yield self.request(config)
+            response = session.request(method=method, url=url, **options)
+            return ResponseProxy(response)
