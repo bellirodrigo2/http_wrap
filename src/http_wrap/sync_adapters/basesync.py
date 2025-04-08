@@ -15,29 +15,25 @@ class SyncHttpSession(Protocol):
     def request(self, method: str, url: str, **kwargs: Any) -> Any: ...
 
 
+def std_make_args(config: HTTPRequestConfig) -> tuple[str, str, dict[str, Any]]:
+    config.validate()
+    request_kwargs = config.options.dump(
+        exclude_none=True, convert_cookies_to_dict=True
+    )
+    return config.method, config.url, request_kwargs
+
+
 @dataclass
 class SyncAdapter(SyncHTTPRequest):
-    make_session: Callable[[], ContextManager[SyncHttpSession]]
-
-    @contextmanager
-    def _make_session(self, _: Mapping[str, str]):
-        with self.make_session() as session:
-            yield session
-
-    def _make_args(self, config: HTTPRequestConfig) -> tuple[str, str, dict[str, Any]]:
-
-        config.validate()
-
-        request_kwargs = config.options.dump(
-            exclude_none=True, convert_cookies_to_dict=True
-        )
-        return config.method, config.url, request_kwargs
+    make_session: Callable[[HTTPRequestOptions], ContextManager[SyncHttpSession]]
+    make_args: Callable[[HTTPRequestConfig], tuple[str, str, dict[str, Any]]] = (
+        std_make_args
+    )
 
     def request(self, config: HTTPRequestConfig) -> ResponseInterface:
-        method, url, options = self._make_args(config)
 
-        with self._make_session(options) as session:
-
+        with self.make_session(config.options) as session:
+            method, url, options = self.make_args(config)
             response = session.request(method=method, url=url, **options)
             return ResponseProxy(response)
 
@@ -50,7 +46,7 @@ class SyncAdapter(SyncHTTPRequest):
             for batch_configs in sublist(configs, max):
                 responses: list[ResponseInterface] = []
                 for config in batch_configs:
-                    method, url, options = self._make_args(config)
+                    method, url, options = self.make_args(config)
                     response = session.request(method=method, url=url, **options)
                     responses.append(ResponseProxy(response))
                 yield responses
