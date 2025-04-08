@@ -1,11 +1,11 @@
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Any, ContextManager
 
 import httpx
 
-from http_wrap.request import HTTPRequestConfig
+from http_wrap.request import HTTPRequestConfig, HTTPRequestOptions
 from http_wrap.response import ResponseInterface, ResponseProxy
 from http_wrap.sync_adapters.basesync import SyncAdapter, SyncHttpSession
 
@@ -25,12 +25,11 @@ class HttpxAdapter(SyncAdapter):
     def _make_args(self, config: HTTPRequestConfig) -> tuple[str, str, dict[str, Any]]:
         method, url, options = super()._make_args(config)
         options["follow_redirects"] = options.pop("allow_redirects", True)
-        options.pop("verify", None)
         return method, url, options
 
-    def request(self, config: HTTPRequestConfig) -> ResponseInterface:
-        method, url, options = self._make_args(config)
-        with self.make_session(verify=config.options.verify) as session:
+    @contextmanager
+    def _make_session(self, options: Mapping[str, str]):
+        verify = options.pop("verify", True)
 
-            response = session.request(method=method, url=url, **options)
-            return ResponseProxy(response)
+        with self.make_session(verify=verify) as session:
+            yield session

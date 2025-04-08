@@ -1,8 +1,9 @@
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Any, ContextManager, Iterable, Protocol
 
-from http_wrap.request import HTTPRequestConfig, SyncHTTPRequest
+from http_wrap.request import HTTPRequestConfig, HTTPRequestOptions, SyncHTTPRequest
 from http_wrap.response import ResponseInterface, ResponseProxy
 
 
@@ -18,6 +19,11 @@ class SyncHttpSession(Protocol):
 class SyncAdapter(SyncHTTPRequest):
     make_session: Callable[[], ContextManager[SyncHttpSession]]
 
+    @contextmanager
+    def _make_session(self, _: Mapping[str, str]):
+        with self.make_session() as session:
+            yield session
+
     def _make_args(self, config: HTTPRequestConfig) -> tuple[str, str, dict[str, Any]]:
 
         config.validate()
@@ -30,7 +36,7 @@ class SyncAdapter(SyncHTTPRequest):
     def request(self, config: HTTPRequestConfig) -> ResponseInterface:
         method, url, options = self._make_args(config)
 
-        with self.make_session() as session:
+        with self._make_session(options) as session:
 
             response = session.request(method=method, url=url, **options)
             return ResponseProxy(response)
