@@ -68,7 +68,7 @@ def test_overwrite_method():
     mock_response.status_code = 200
 
     # Sobrescrevendo o método `status_code`
-    overwrite = {"status_code": lambda self: 404}
+    overwrite = {"status_code": lambda self: 404, "__str__": lambda self: "KKKKKKKK"}
     # Criando o Proxy com o método sobrescrito
     proxy = make_proxy(mock_response, ResponseInterface, {}, overwrite)
 

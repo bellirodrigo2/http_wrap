@@ -74,7 +74,7 @@ def get_user_defined_methods_and_attributes(cls):
     user_attributes = [
         name
         for name, obj in members
-        if not inspect.isfunction(obj) and not name.startswith("__")
+        if not inspect.isfunction(obj) and not name.startswith("_")
     ]
     return user_methods, user_attributes
 
@@ -85,10 +85,10 @@ def make_proxy(
     key_map: Mapping[str, str],
     overwrite: Mapping[str, Any],
 ) -> ReadProxy[T]:
-    print(get_user_defined_methods_and_attributes(interface))
-    all_attrs = [s for s in dir(interface) if s.startswith("_") is False]
-    methods = [m for m in all_attrs if callable(getattr(interface, m))]
-    attr_props = [a for a in all_attrs if not callable(getattr(interface, a))]
+    methods, attr_props = get_user_defined_methods_and_attributes(interface)
+    # all_attrs = [s for s in dir(interface) if s.startswith("_") is False]
+    # methods = [m for m in all_attrs if callable(getattr(interface, m))]
+    # attr_props = [a for a in all_attrs if not callable(getattr(interface, a))]
 
     proxy = ReadProxy(methods, attr_props, target, key_map, overwrite)
     return proxy
