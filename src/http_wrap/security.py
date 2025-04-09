@@ -1,11 +1,7 @@
 import ipaddress
 import socket
-from collections.abc import ItemsView, KeysView, Mapping, ValuesView
-from dataclasses import dataclass, field
-from typing import Any, Iterator, Optional
 from urllib.parse import urlparse
 
-from http_wrap.proxy import Handler, Proxy
 from http_wrap.settings import get_settings
 
 INTERNAL_DOMAINS = (".local", ".internal", ".lan")
@@ -51,6 +47,9 @@ def is_redacted(header_name: str) -> bool:
     ):
         return True
 
+    if any(s in name for s in getattr(settings, "redact_headers_endswith", [])):
+        return True
+
     return False
 
 
@@ -88,42 +87,7 @@ class RedirectPolicy:
         return True
 
 
-def make_headers(headers: dict[str, str]) -> Proxy[dict[str, str]]:
-    sanitized = {k.lower(): str(v) for k, v in headers.items()}
-
-    def proxy_getitem(obj: dict[str, str], key: str) -> str:
-        return obj[key.lower()]
-
-    def proxy_call_get(
-        obj: dict[str, str], key: str, default: Optional[Any] = None
-    ) -> Optional[str]:
-        k = key.lower()
-        if is_redacted(k):
-            return "<redacted>"
-        return obj.get(k, default)
-
-    def proxy_contain(obj: dict[str, str], key: str) -> bool:
-        return isinstance(key, str) and key.lower() in obj  # type: ignore
-
-    def proxy_call_saferepr(obj: dict[str, str]) -> dict[str, str]:
-        return {k: "<redacted>" if is_redacted(k) else v for k, v in obj.items()}
-
-    def proxy_get_raw(obj: dict[str, str]) -> dict[str, str]:
-        return obj.copy()
-
-    def proxy_str(obj: dict[str, str]) -> str:
-        return str(proxy_call_saferepr(obj))
-
-    def proxy_repr(obj: dict[str, str]) -> str:
-        return f"<Headers {proxy_call_saferepr(obj)}>"
-
-    handler: Handler[dict[str, str]] = Handler(
-        getitem=proxy_getitem,
-        get={"raw": proxy_get_raw},
-        contain=proxy_contain,
-        call={"get": proxy_call_get, "safe_repr": proxy_call_saferepr},
-        str=proxy_str,
-        repr=proxy_repr,
-    )
-
-    return Proxy.wrap(sanitized, handler)  # type: ignore
+def sanitize_headers(headers: dict[str, str]) -> dict[str, str]:
+    return {
+        k.lower(): "<redacted>" if is_redacted(k) else v for k, v in headers.items()
+    }

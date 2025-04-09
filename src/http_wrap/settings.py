@@ -1,9 +1,7 @@
 # httpwrap/settings.py
 
 from dataclasses import dataclass, field
-from typing import List, Optional
-
-# TODO -> habilitar logging...
+from typing import Optional
 
 
 @dataclass
@@ -12,15 +10,15 @@ class HttpLibSettings:
     allow_internal_access: bool = False
     redirect_enabled: bool = True
     allow_cross_domain: bool = False
-    trusted_domains: List[str] = field(default_factory=list)
+    trusted_domains: list[str] = field(default_factory=list)
 
     # Redaction patterns
-    redact_headers: List[str] = field(
+    redact_headers: list[str] = field(
         default_factory=lambda: ["Authorization", "Proxy-Authorization"]
     )
-    redact_headers_startswith: List[str] = field(default_factory=list)
-    redact_headers_endswith: List[str] = field(default_factory=list)
-    logging: bool = field(default=False)
+    redact_headers_startswith: list[str] = field(default_factory=list)
+    redact_headers_endswith: list[str] = field(default_factory=list)
+    redact_headers_contain: list[str] = field(default_factory=list)
 
 
 # Internal singleton instance
@@ -40,10 +38,11 @@ def configure(
     allow_internal_access: Optional[bool] = None,
     redirect_enabled: Optional[bool] = None,
     allow_cross_domain: Optional[bool] = None,
-    trusted_domains: Optional[List[str]] = None,
-    redact_headers: Optional[List[str]] = None,
-    redact_headers_startswith: Optional[List[str]] = None,
-    redact_headers_endswith: Optional[List[str]] = None,
+    trusted_domains: Optional[list[str]] = None,
+    redact_headers: Optional[list[str]] = None,
+    redact_headers_startswith: Optional[list[str]] = None,
+    redact_headers_endswith: Optional[list[str]] = None,
+    redact_headers_contain: Optional[list[str]] = None,
 ) -> None:
     if default_timeout is not None:
         _settings.default_timeout = default_timeout
@@ -61,6 +60,8 @@ def configure(
         _settings.redact_headers_startswith = redact_headers_startswith
     if redact_headers_endswith is not None:
         _settings.redact_headers_endswith = redact_headers_endswith
+    if redact_headers_contain is not None:
+        _settings.redact_headers_contain = redact_headers_contain
 
 
 def reset_settings() -> None:

@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Any, Protocol, runtime_checkable
 
-from http_wrap.security import RedirectPolicy, make_headers
+from http_wrap.security import RedirectPolicy, sanitize_headers
 
 
 @runtime_checkable
@@ -30,6 +30,9 @@ class ResponseInterface(Protocol):
 
     # @property
     # def reason(self) -> str: ...
+    def __str__(self) -> str: ...
+
+    def __repr__(self) -> str: ...
 
 
 @dataclass
@@ -68,7 +71,8 @@ class ResponseProxy(ResponseInterface):
 
     @property
     def headers(self) -> Mapping[str, str]:
-        return make_headers(dict(self._response.headers))
+        # return make_headers(dict(self._response.headers))
+        return sanitize_headers(dict(self._response.headers))
 
     @property
     def cookies(self) -> Mapping[str, str]:
@@ -93,6 +97,29 @@ class ResponseProxy(ResponseInterface):
     # @property
     # def reason(self) -> str:
     #     return getattr(self._response, "reason", "")
+
+    def __str__(self) -> str:
+        return f"<ResponseProxy status={self.status_code}>"
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
+
+requests_overwrite = {
+    "headers": lambda resp: sanitize_headers(dict(resp.headers)),
+    "cookies": lambda resp: dict(resp.cookies),
+    "encoding": lambda resp: getattr(resp, "encoding", "utf-8"),
+    "elapsed": lambda resp: getattr(resp, "elapsed", timedelta(0)),
+    "history": lambda resp: getattr(resp, "history", []),
+}
+
+
+@dataclass
+class ResponseProxy2(ResponseInterface):
+
+    @property
+    def history(self) -> list[ResponseInterface]:
+        return getattr(self._response, "history", [])
 
     def __str__(self) -> str:
         return f"<ResponseProxy status={self.status_code}>"

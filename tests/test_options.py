@@ -1,7 +1,7 @@
 import pytest
 
 from http_wrap.request import HTTPRequestOptions
-from http_wrap.security import make_headers
+from http_wrap.security import sanitize_headers
 
 
 def test_valid_options_creation():
@@ -70,7 +70,7 @@ def test_headers_repr_does_not_expose_values(monkeypatch):
         lambda: type("S", (), {"redact_headers": ["authorization", "x-api-key"]})(),
     )
     sensitive = {"Authorization": "secret-token", "X-Api-Key": "123456"}
-    headers = make_headers(sensitive)
+    headers = sanitize_headers(sensitive)
 
     output = repr(headers)
     assert "secret-token" not in output
