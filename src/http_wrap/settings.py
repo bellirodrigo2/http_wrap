@@ -3,6 +3,8 @@
 from dataclasses import dataclass, field
 from typing import List, Optional
 
+# TODO -> habilitar logging...
+
 
 @dataclass
 class HttpLibSettings:
@@ -18,6 +20,7 @@ class HttpLibSettings:
     )
     redact_headers_startswith: List[str] = field(default_factory=list)
     redact_headers_endswith: List[str] = field(default_factory=list)
+    logging: bool = field(default=False)
 
 
 # Internal singleton instance

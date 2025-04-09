@@ -4,7 +4,7 @@ from typing import Any, Literal, Optional, Protocol, Union, get_args
 from urllib.parse import urlparse
 
 from http_wrap.response import ResponseInterface
-from http_wrap.security import Headers, is_internal_address
+from http_wrap.security import is_internal_address
 from http_wrap.settings import get_settings
 
 httpmethod = Literal["get", "post", "put", "patch", "delete", "head"]
@@ -46,8 +46,8 @@ class HTTPRequestOptions:
         if self.timeout is not None and self.timeout <= 0:
             raise ValueError("timeout must be a positive number")
 
-        if self.headers is not None:
-            self.headers = Headers(dict(self.headers))
+        # if self.headers is not None:
+        # self.headers = Headers(dict(self.headers))
 
         self.params = dict(self.params) if self.params is not None else None
         self.cookies = dict(self.cookies) if self.cookies is not None else None

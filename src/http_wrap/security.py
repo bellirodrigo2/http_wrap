@@ -54,56 +54,6 @@ def is_redacted(header_name: str) -> bool:
     return False
 
 
-@dataclass
-class Headers(Mapping):
-    _headers: dict[str, str] = field(default_factory=dict)
-
-    def __post_init__(self) -> None:
-        self._headers = {k.lower(): str(v) for k, v in self._headers.items()}
-
-    def __getitem__(self, key: str) -> str:
-        return self._headers[key.lower()]
-
-    def __iter__(self) -> Iterator[str]:
-        return iter(self._headers)
-
-    def __len__(self) -> int:
-        return len(self._headers)
-
-    def __contains__(self, key: object) -> bool:
-        return isinstance(key, str) and key.lower() in self._headers
-
-    def get(self, key: str, default: Any = None) -> Any:
-        k = key.lower()
-        if is_redacted(k):
-            return "<redacted>"
-        return self._headers.get(k, default)
-
-    def items(self) -> ItemsView[str, str]:
-        return self._headers.items()
-
-    def keys(self) -> KeysView[str]:
-        return self._headers.keys()
-
-    def values(self) -> ValuesView[str]:
-        return self._headers.values()
-
-    def raw(self) -> dict[str, str]:
-        """Access raw lowercase headers."""
-        return self._headers.copy()
-
-    def safe_repr(self) -> dict[str, str]:
-        return {
-            k: "<redacted>" if is_redacted(k) else v for k, v in self._headers.items()
-        }
-
-    def __str__(self) -> str:
-        return str(self.safe_repr())
-
-    def __repr__(self) -> str:
-        return f"<Headers {self.safe_repr()}>"
-
-
 class RedirectPolicy:
     _enabled: bool = False
     _allow_cross_domain: bool = False
@@ -144,11 +94,16 @@ def make_headers(headers: dict[str, str]) -> Proxy[dict[str, str]]:
     def proxy_getitem(obj: dict[str, str], key: str) -> str:
         return obj[key.lower()]
 
-    def proxy_call_get(obj: dict[str, str], key: str, default: Any) -> Optional[str]:
+    def proxy_call_get(
+        obj: dict[str, str], key: str, default: Optional[Any] = None
+    ) -> Optional[str]:
         k = key.lower()
         if is_redacted(k):
             return "<redacted>"
-        return obj.get(key, default)
+        return obj.get(k, default)
+
+    def proxy_contain(obj: dict[str, str], key: str) -> bool:
+        return isinstance(key, str) and key.lower() in obj  # type: ignore
 
     def proxy_call_saferepr(obj: dict[str, str]) -> dict[str, str]:
         return {k: "<redacted>" if is_redacted(k) else v for k, v in obj.items()}
@@ -165,12 +120,10 @@ def make_headers(headers: dict[str, str]) -> Proxy[dict[str, str]]:
     handler: Handler[dict[str, str]] = Handler(
         getitem=proxy_getitem,
         get={"raw": proxy_get_raw},
+        contain=proxy_contain,
         call={"get": proxy_call_get, "safe_repr": proxy_call_saferepr},
         str=proxy_str,
         repr=proxy_repr,
     )
 
     return Proxy.wrap(sanitized, handler)  # type: ignore
-
-    # def __contains__(self, key: object) -> bool:
-    # return isinstance(key, str) and key.lower() in self._headers

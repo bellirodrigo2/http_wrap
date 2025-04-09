@@ -1,4 +1,4 @@
-from http_wrap.security import Headers
+from http_wrap.security import make_headers
 
 
 def test_headers_returns_raw_values_by_default(monkeypatch):
@@ -7,7 +7,7 @@ def test_headers_returns_raw_values_by_default(monkeypatch):
         lambda: type("S", (), {"redact_headers": []})(),
     )
 
-    h = Headers({"X-Test": "abc", "Authorization": "token123"})
+    h = make_headers({"X-Test": "abc", "Authorization": "token123"})
     assert h["x-test"] == "abc"
     assert h["authorization"] == "token123"
     assert h.get("Authorization") == "token123"
@@ -19,7 +19,7 @@ def test_headers_str_redacts_configured_fields(monkeypatch):
         "http_wrap.security.get_settings",
         lambda: type("S", (), {"redact_headers": ["authorization", "x-api-key"]})(),
     )
-    h = Headers(
+    h = make_headers(
         {
             "Authorization": "secret-token",
             "X-Api-Key": "123456",
@@ -40,7 +40,7 @@ def test_headers_repr_behaves_like_str(monkeypatch):
         "http_wrap.security.get_settings",
         lambda: type("S", (), {"redact_headers": ["x-secret"]})(),
     )
-    h = Headers({"X-Secret": "topsecret", "User-Agent": "pytest"})
+    h = make_headers({"X-Secret": "topsecret", "User-Agent": "pytest"})
 
     output = repr(h)
     assert "topsecret" not in output
@@ -49,9 +49,8 @@ def test_headers_repr_behaves_like_str(monkeypatch):
 
 
 def test_headers_allows_raw_access():
-    h = Headers({"Authorization": "raw-token"})
-    raw = h.raw()
-    assert raw["authorization"] == "raw-token"
+    h = make_headers({"Authorization": "raw-token"})
+    assert h.raw["authorization"] == "raw-token"
 
 
 def test_headers_redacts_fields_that_start_with_prefix(monkeypatch):
@@ -68,7 +67,7 @@ def test_headers_redacts_fields_that_start_with_prefix(monkeypatch):
         )(),
     )
 
-    h = Headers(
+    h = make_headers(
         {
             "X-Private-Token": "secret123",
             "X-Private-Info": "classified",
@@ -96,7 +95,7 @@ def test_headers_redacts_fields_that_end_with_suffix(monkeypatch):
         )(),
     )
 
-    h = Headers(
+    h = make_headers(
         {
             "X-Token-Secret": "hidden",
             "Authorization-Private": "sensitive",

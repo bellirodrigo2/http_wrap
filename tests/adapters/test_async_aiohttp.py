@@ -8,7 +8,6 @@ from http_wrap.async_adapters import AioHttpAdapter
 from http_wrap.async_adapters.aiohttp import make_response
 from http_wrap.request import HTTPRequestConfig, HTTPRequestOptions, ResponseInterface
 from http_wrap.response import ResponseProxy
-from http_wrap.security import Headers
 
 
 @pytest.fixture
@@ -113,12 +112,12 @@ async def test_response_proxy_with_aiohttp():
                 assert proxy.text
                 assert proxy.content
                 assert proxy.url.rstrip("/") == "https://example.com"
-                assert isinstance(proxy.headers, Headers)
+                # assert isinstance(proxy.headers, Headers)
                 assert "x-test" in proxy.headers
                 assert proxy.headers["x-test"] == "abc"
                 assert "Authorization" not in str(proxy.headers)
                 assert "<redacted>" in str(proxy.headers)
-                assert proxy.headers.raw()["authorization"] == "top-secret"
+                assert proxy.headers.raw["authorization"] == "top-secret"
                 assert isinstance(proxy.cookies, dict)
                 assert isinstance(proxy.json(), dict)
                 assert isinstance(proxy.encoding, str)

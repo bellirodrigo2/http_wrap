@@ -23,30 +23,32 @@ T_contra = TypeVar("T_contra", contravariant=True)
 
 @runtime_checkable
 class GetHandler(Protocol[T_contra]):
-    def __call__(self, obj: T_contra) -> Any: ...
+    def __call__(self, target: T_contra) -> Any: ...
 
 
 @runtime_checkable
 class SetHandler(Protocol[T_contra]):
-    def __call__(self, obj: T_contra, value: Any) -> Any: ...
+    def __call__(self, target: T_contra, value: Any) -> Any: ...
 
 
-HasHandler = GetHandler
+@runtime_checkable
+class ContainHandler(Protocol[T_contra]):
+    def __call__(self, target: T_contra, value: Any) -> Any: ...
 
 
 @runtime_checkable
 class DeleteHandler(Protocol[T_contra]):
-    def __call__(self, obj: T_contra) -> None: ...
+    def __call__(self, target: T_contra) -> None: ...
 
 
 @runtime_checkable
 class CallHandler(Protocol[T_contra]):
-    def __call__(self, obj: T_contra, *args: Any, **kwargs: Any) -> Any: ...
+    def __call__(self, target: T_contra, *args: Any, **kwargs: Any) -> Any: ...
 
 
 @runtime_checkable
 class ContextHandler(Protocol):
-    def __call__(self, obj: Any) -> ContextManager[Any]: ...
+    def __call__(self, target: Any) -> ContextManager[Any]: ...
 
 
 IteratorHandler = GetHandler
@@ -57,22 +59,22 @@ ReprHandler = GetHandler
 
 @runtime_checkable
 class GetItemHandler(Protocol[T_contra]):
-    def __call__(self, obj: T_contra, key: str) -> Any: ...
+    def __call__(self, target: T_contra, key: str) -> Any: ...
 
 
 @runtime_checkable
 class LenHandler(Protocol[T_contra]):
-    def __call__(self, obj: T_contra) -> int: ...
+    def __call__(self, target: T_contra) -> int: ...
 
 
 @runtime_checkable
 class SetItemHandler(Protocol[T_contra]):
-    def __call__(self, obj: T_contra, key: Any, value: Any) -> None: ...
+    def __call__(self, target: T_contra, key: Any, value: Any) -> None: ...
 
 
 @runtime_checkable
 class EqualHandler(Protocol[T_contra]):
-    def __call__(self, obj: T_contra, other: Any) -> bool: ...
+    def __call__(self, target: T_contra, other: Any) -> bool: ...
 
 
 NEqualHandler = EqualHandler
@@ -80,14 +82,14 @@ NEqualHandler = EqualHandler
 
 @runtime_checkable
 class BoolHandler(Protocol[T_contra]):
-    def __call__(self, obj: T_contra) -> bool: ...
+    def __call__(self, target: T_contra) -> bool: ...
 
 
 @dataclass
 class Handler(Generic[T]):
     get: Optional[dict[str, GetHandler[T]]] = None
     set: Optional[dict[str, SetHandler[T]]] = None
-    has: Optional[dict[Any, HasHandler[T]]] = None
+    contain: Optional[ContainHandler[T]] = None
     delete: Optional[dict[str, DeleteHandler[T]]] = None
     call: Optional[dict[str, CallHandler[T]]] = None
     context: Optional[ContextHandler] = None
@@ -145,10 +147,8 @@ class Proxy(Generic[T]):
         delattr(self.target, name)
 
     def __contains__(self, name: object) -> bool:
-        if self.handler.has:
-            func = self.handler.has.get(name)
-            if func:
-                return func(self.target)
+        if self.handler.contain:
+            return self.handler.contain(self.target, name)
 
         if isinstance(self.target, Iterable):
             try:
@@ -257,17 +257,17 @@ class Proxy(Generic[T]):
         return instance
 
 
-def is_proxy(obj: Any) -> bool:
-    return getattr(obj, "__is_proxy__", False)
+def is_proxy(target: Any) -> bool:
+    return getattr(target, "__is_proxy__", False)
 
 
-def unwrap(obj: Union[T, Proxy[T]]) -> T:
-    if is_proxy(obj):
-        return getattr(obj, "target")
-    return obj  # type: ignore
+def unwrap(target: Union[T, Proxy[T]]) -> T:
+    if is_proxy(target):
+        return getattr(target, "target")
+    return target  # type: ignore
 
 
-def deep_unwrap(obj: Any) -> Any:
-    while is_proxy(obj):
-        obj = unwrap(obj)
-    return obj
+def deep_unwrap(target: Any) -> Any:
+    while is_proxy(target):
+        target = unwrap(target)
+    return target

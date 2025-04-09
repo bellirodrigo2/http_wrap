@@ -6,7 +6,6 @@ import responses
 
 from http_wrap import HTTPRequestConfig, HTTPRequestOptions
 from http_wrap.response import ResponseInterface, ResponseProxy
-from http_wrap.security import Headers
 from http_wrap.sync_adapters import RequestsAdapter
 
 
@@ -126,12 +125,12 @@ def test_response_proxy_with_requests():
     assert proxy.text
     assert proxy.content
     assert proxy.url.rstrip("/") == "https://example.com"
-    assert isinstance(proxy.headers, Headers)
+    # assert isinstance(proxy.headers, Headers)
     assert "x-test" in proxy.headers
     assert proxy.headers["x-test"] == "value"
     assert "Authorization" not in str(proxy.headers)
     assert "<redacted>" in str(proxy.headers)
-    assert proxy.headers.raw()["authorization"] == "secret"
+    assert proxy.headers.raw["authorization"] == "secret"
     assert isinstance(proxy.cookies, dict)
     assert isinstance(proxy.json(), dict)
     assert isinstance(proxy.encoding, str)
