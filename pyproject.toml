@@ -11,10 +11,7 @@ keywords = ["http", "requests", "aiohttp"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-requests = "^2.32.3"
-aiohttp = "^3.11.16"
-httpx = "^0.28.1"
-
+wrapt = "^1.17.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.5"
@@ -29,6 +26,12 @@ types-requests = "^2.32.0.20250328"
 tox = "^4.25.0"
 twine = "^6.1.0"
 pytest-httpx = "^0.35.0"
+
+httpx = "^0.28.1"
+requests = "^2.32.3"
+aiohttp = "^3.11.16"
+[tool.poetry.scripts]
+clear-caches = "scripts.clear_caches:main"
 
 [build-system]
 requires = ["poetry-core"]
