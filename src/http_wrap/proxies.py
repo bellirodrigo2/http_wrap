@@ -19,7 +19,7 @@ from http_wrap.interfaces import (
 
 
 class ResponseProxy(wrapt.ObjectProxy):
-    def __init__(self, response: Any, redact: RedactHeaders) -> None:
+    def __init__(self, response: Any, redact: Optional[RedactHeaders] = None) -> None:
         super().__init__(response)
         if not hasattr(self, "status_code"):
             self.status_code = getattr(response, "status", 0)
@@ -29,8 +29,11 @@ class ResponseProxy(wrapt.ObjectProxy):
 
         status = HTTPStatus(self.status_code)
 
+        if not hasattr(self, "reason"):
+            self.reason = status.phrase
+
         if not hasattr(self, "reason_phrase"):
-            self.reason_phrase = status.phrase
+            self.reason_phrase = status.phrase.upper()
 
         if not hasattr(self, "ok"):
             self.ok = status.is_success or status.is_redirection
@@ -75,8 +78,10 @@ class ResponseProxy(wrapt.ObjectProxy):
 
         if hasattr(response, "raise_for_status"):
 
+            original_raise = response.raise_for_status
+
             def raise_for_status_sync(resp: Any) -> Any:
-                resp.raise_for_status()
+                original_raise()
                 return resp
 
             self.raise_for_status = MethodType(raise_for_status_sync, self)
@@ -90,8 +95,9 @@ class ResponseProxy(wrapt.ObjectProxy):
             except Exception:
                 self.raw_headers = []
 
-        sanitized = sanitize_headers(response.headers, *redact)
-        self.headers = sanitized
+        if redact:
+            sanitized = sanitize_headers(response.headers, *redact)
+            self.headers = sanitized
 
         if not hasattr(self, "history"):
             self.history = getattr(response, "history", [])

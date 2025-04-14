@@ -1,7 +1,7 @@
 import asyncio
 from contextlib import AbstractAsyncContextManager, AbstractContextManager
 from typing import Any
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
 
@@ -11,15 +11,21 @@ from http_wrap.interfaces import HTTPWrapClient
 
 
 def test_make_client_session_sync() -> None:
-    mock_sessionmaker = Mock()
-    mock_session = Mock(spec=HTTPWrapClient)
-    mock_sessionmaker.return_value = mock_session
+    mock_session = MagicMock(spec=HTTPWrapClient)
+
+    def sync_sessionmaker(**kwargs: Any) -> MagicMock:
+        return mock_session
 
     config = HTTPWrapConfig()
-
-    session_ctx = make_client_session(mock_sessionmaker, config)
+    session_ctx = make_client_session(sync_sessionmaker, config)
 
     assert isinstance(session_ctx, AbstractContextManager)
+
+    with session_ctx as client:
+        from http_wrap.proxies import ClientProxy
+
+        assert isinstance(client, ClientProxy)
+        assert client.__wrapped__ is mock_session
 
 
 @pytest.mark.asyncio

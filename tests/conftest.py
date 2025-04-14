@@ -1,4 +1,5 @@
 import inspect
+from dataclasses import dataclass
 from typing import Any, Callable, Mapping, Optional, Tuple, Union
 
 import httpx
@@ -11,7 +12,7 @@ from http_wrap.interfaces import WrapResponse
 
 
 @pytest.fixture
-def resquests_pack() -> Tuple[Callable[..., Any], Callable[..., Any]]:
+def requests_pack() -> Tuple[Callable[..., Any], Callable[..., Any]]:
     def make_response(
         method: str,
         url: str,
@@ -76,6 +77,22 @@ def httpx_pack() -> Tuple[Callable[..., Any], Callable[..., Any]]:
             return response
 
     return make_response, http_request
+
+
+@dataclass
+class ReqPack:
+    method: str
+    url: str
+
+    req_headers: Mapping[str, Any]
+
+    resp_headers: Mapping[str, Any]
+    body: Union[str, bytes]
+    status: int
+
+    json: Optional[Mapping[str, str]] = None
+    data: Optional[Mapping[str, str]] = None
+    params: Optional[Mapping[str, str]] = None
 
 
 @pytest.fixture
