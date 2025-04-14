@@ -134,7 +134,7 @@ HTTPWrapResponse = Union[WrapSyncResponse, WrapAsyncResponse]
 
 
 httpmethod = Literal["get", "post", "put", "patch", "delete", "head", "options"]
-ALLOWED_METHODS = list(get_args(httpmethod))
+ALLOWED_METHODS = tuple(get_args(httpmethod))
 
 
 class HTTPWrapClient(Protocol):
@@ -147,7 +147,11 @@ class HTTPWrapClient(Protocol):
 
     def post(self, url: Union[str, WrapURL], **kwargs: Any) -> HTTPWrapResponse: ...
 
+    def patch(self, url: Union[str, WrapURL], **kwargs: Any) -> HTTPWrapResponse: ...
+
     def put(self, url: Union[str, WrapURL], **kwargs: Any) -> HTTPWrapResponse: ...
+
+    def head(self, url: Union[str, WrapURL], **kwargs: Any) -> HTTPWrapResponse: ...
 
     def delete(self, url: Union[str, WrapURL], **kwargs: Any) -> HTTPWrapResponse: ...
 

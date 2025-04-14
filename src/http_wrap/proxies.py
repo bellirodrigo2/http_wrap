@@ -2,12 +2,12 @@ from collections.abc import Mapping
 from datetime import timedelta
 from http import HTTPStatus
 from types import MethodType, TracebackType
-from typing import Any, Callable, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Optional, Sequence, Tuple, Type, Union
 
 import wrapt
 
-from http_wrap.configs import HTTPWrapConfig
-from http_wrap.hooks import RedactHeaders, extract_host, sanitize_headers
+from http_wrap.configs import RedactHeaders
+from http_wrap.hooks import extract_host, sanitize_headers
 from http_wrap.interfaces import (
     ALLOWED_METHODS,
     HTTPWrapClient,

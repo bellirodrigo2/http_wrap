@@ -1,52 +1,14 @@
 import ipaddress
 import socket
-import stat
-from dataclasses import dataclass, field
-from http import HTTPStatus
-from inspect import stack
-from logging import Logger
-from types import MethodType, TracebackType
-from typing import (
-    Any,
-    Callable,
-    Container,
-    List,
-    Literal,
-    Mapping,
-    Optional,
-    Tuple,
-    Union,
-    get_args,
-)
+from typing import Any, Container, Literal, Mapping, Optional, Sequence, Union, get_args
 from urllib.parse import urlparse
 
 import wrapt
 
-from http_wrap.interfaces import HTTPWrapResponse, WrapURL
+from http_wrap.interfaces import WrapURL
 
 httpmethod = Literal["get", "post", "put", "patch", "delete", "head"]
 ALLOWED_METHODS = get_args(httpmethod)
-
-RedactHeaders = Tuple[List[str], List[str], List[str], List[str]]
-
-
-@dataclass
-class RequestConfig:
-    allow_internal_access: bool = field(default=False)  # REQ
-    sanitize_resp_header: Optional[RedactHeaders] = None  # RESP
-    sanitize_auth: bool = field(default=True)
-    exclude_none: bool = field(default=True)  # REQ
-    validate_url: bool = field(default=True)  # REQ
-    max_redirects: Optional[int] = field(default=0)  # REQ
-    trusted_domains: Container[str] = field(default_factory=list[str])  # REQ
-    default_timeout: Optional[float] = field(default=None)  # REQ
-    default_cert: List[str] = field(default_factory=list)  # REQ
-    allowed_methods: Container[httpmethod] = field(default=ALLOWED_METHODS)  # REQ
-    # proxy_response: bool = field(default=True)
-    error_mode: Literal["raise", "fix", "ignore"] = field(default="ignore")  # REQ
-    nohooks: bool = field(default=True)  # REQ
-    logging: Optional[Logger] = None
-    check_request_consistency: bool = field(default=True)
 
 
 def should_redact_header(
@@ -129,21 +91,6 @@ def extract_hostname(value: str) -> str:
     return parsed.hostname or ""
 
 
-from typing import Sequence, Union
-from urllib.parse import urlparse
-
-
-def extract_hostname(value: str) -> str:
-    """
-    Extrai o hostname de uma URL ou domínio.
-    Adiciona http:// temporariamente caso não haja scheme, só para parsing.
-    """
-    if "://" not in value:
-        value = "http://" + value  # Apenas para o urlparse funcionar corretamente
-    parsed = urlparse(value)
-    return parsed.hostname or ""
-
-
 def is_allowed_domain(
     url: Union[str, "WrapURL"],
     allowed_domains: Sequence[str],
@@ -206,17 +153,6 @@ def check_consistency(
 
 def extract_host(url: Union[str, WrapURL]) -> str:
     return url.host if hasattr(url, "host") else getattr(url, "netloc", "")
-
-
-def check_url(configs: HTTPWrapConfig, url: Union[str, WrapURL]) -> None:
-
-    if not configs.allow_internal:
-        raise_on_internal_address(url)
-    if configs.validate_url:
-        validate_url(url)
-
-    if configs.trusted_domains and not is_allowed_domain(url, configs.trusted_domains):
-        raise ValueError(f"URL {url} is not within trusted domains")
 
 
 def validate_client(client: Any) -> None:

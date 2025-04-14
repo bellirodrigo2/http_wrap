@@ -81,11 +81,6 @@ def make_client_session(
     AbstractContextManager[HTTPWrapClient],
     AbstractAsyncContextManager[HTTPWrapClient],
 ]:
-    def make_resp_proxy(resp: Any) -> HTTPWrapResponse:
-        match, startswith, endswith, contain = configs.sanitize_resp_header
-        return ResponseProxy(resp, redact=(match, startswith, endswith, contain))
-
-    prebound_run_check = partial(run_check_config, config=configs)
 
     factory = (
         async_http_wrap_session_factory
@@ -93,10 +88,13 @@ def make_client_session(
         else http_wrap_session_factory
     )
 
+    match, startswith, endswith, contain = configs.sanitize_resp_header
     return factory(
         sessionmaker=sessionmaker,
         configs=configs,
-        run_check=prebound_run_check,
+        run_check=partial(run_check_config, config=configs),
         validate_client=validate_client,
-        response_proxy=make_resp_proxy,
+        response_proxy=partial(
+            ResponseProxy, redact=(match, startswith, endswith, contain)
+        ),
     )

@@ -14,8 +14,7 @@ from typing import (
     runtime_checkable,
 )
 
-from http_wrap.hooks import check_consistency
-from http_wrap.httpwrap import check_url
+from http_wrap.hooks import check_consistency, raise_on_internal_address, validate_url
 from http_wrap.interfaces import ALLOWED_METHODS, WrapURL, httpmethod
 
 RedactHeaders = Tuple[List[str], List[str], List[str], List[str]]
@@ -70,7 +69,11 @@ def run_check_config(
     config: HTTPWrapConfig,
 ) -> Tuple[Sequence[Any], Mapping[str, Any]]:
 
-    check_url(config, url)
+    if not config.allow_internal:
+        raise_on_internal_address(url)
+    if config.validate_url:
+        validate_url(url)
+
     check_consistency(
         method=method,
         params=kwargs.get("params", None),
